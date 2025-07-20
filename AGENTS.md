@@ -157,14 +157,6 @@ Use this section to track meaningful discoveries, design choices, or bugs/fixes 
 - **Outcome**: GravityCameraModifier now initializes cleanly across environments.  
   Wallstick and camera behavior stable at runtime. ✅
 
----
-
-### [2025-07-19] TransparencyController crash on nil part transparency
-- Symptom: Runtime error thrown by `TransparencyController` when targeting nil or missing parts.
-- Fix: Added fallback logic to skip parts that return `nil` or have no `Transparency` property.
-
----
-
 ### [2025-07-20] Initial code scan documentation
 - Reviewed client and server modules starting from `src/client/Wallstick/init.luau`
 - Documented responsibilities and dependencies for each major file in File Purposes

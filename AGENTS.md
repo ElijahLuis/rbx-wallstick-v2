@@ -141,6 +141,24 @@ Use this section to track meaningful discoveries, design choices, or bugs/fixes 
 
 ---
 
+### [2025-07-20] Runtime errors fully resolved!
+
+**Issues Fixed:**
+
+- **GravityCameraModifier**
+  - `fromToRotation` and `swingTwist` were nil at runtime
+  - 🔧 Moved both above their usage in `calculateUpStep` and `calculateSpinStep`
+
+- **TransparencyController**
+  - `self.lastTransparency` was nil → caused arithmetic error
+    - 🔧 Fallback added: `local last = self.lastTransparency or 0`
+  - `Update(dt)` was being called with `nil dt`
+    - 🔧 Fixed call in `PlayerScriptsLoader` to pass `dt` correctly
+
+**Status:**  
+All runtime crashes cleared. Gravity + camera logic stable.  
+Ready for Codex reactivation and continued development.
+
 ### [2025-07-20] GravityCameraModifier early runtime crashes resolved
 
 - **Symptom**: Multiple runtime errors from `calculateUpStep()` and `calculateSpinStep()`

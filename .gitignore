@@ -3,9 +3,6 @@
 /DevPackages/
 /Packages/
 
-# Package files
-
-
 # Build assets, lock files
 /assets
 sourcemap.json
@@ -30,9 +27,5 @@ desktop.ini
 # VS Code
 .vscode/
 
-# OS-specific
-.AppleDouble
-.LSOverride
-ehthumbs.db
 
 

@@ -87,6 +87,11 @@ You are assisting in the modernization of the **rbx-wallstick** module — a wal
 ### `src/server/PlayerScripts/CharacterSounds/Controller.luau`
 - **Purpose**: Manages per-player sound emitters and cleanup
 
+### `src/server/PlayerScripts/Animate/PlayEmote.model.json`
+- **Purpose**: Declares `PlayEmote` BindableFunction instance used by Animate.Controller
+- **Dependencies**: Consume via `Animate/Controller.luau`
+- **Notes**: Keep in sync with any server-side emote triggers
+
 *(Add more as modules are documented)*
 ---
 
@@ -146,6 +151,11 @@ Use this section to track meaningful discoveries, design choices, or bugs/fixes 
 - Reviewed client and server modules starting from `src/client/Wallstick/init.luau`
 - Documented responsibilities and dependencies for each major file in File Purposes
 - Observed consistent use of custom PlayerModule wrappers and typed remotes
+
+### [2025-07-20] Dry-run structure verification
+- Added File Purpose entry for `src/server/PlayerScripts/Animate/PlayEmote.model.json`
+- Assuming all character rigs include `RootAttachment`; unknown behavior otherwise
+- Possible refactor opportunity: unify replication debounce timing
 
 ---
 

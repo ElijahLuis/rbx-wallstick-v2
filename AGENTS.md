@@ -105,6 +105,24 @@ Use this section to track meaningful discoveries, design choices, or bugs/fixes 
 
 ---
 
+### [2025-07-20] GravityCameraModifier early runtime crashes resolved
+
+- **Symptom**: Multiple runtime errors from `calculateUpStep()` and `calculateSpinStep()`
+  - Line 42: `attempt to call a nil value` → `fromToRotation` was undefined at call time
+  - Line 74: `attempt to call a nil value` → `swingTwist` was also undefined at call time
+
+- **Cause**: Lua requires local functions to be declared *before* they are used.  
+  Both utility functions were placed *below* the functions that depended on them.
+
+- **Fixes**:
+  - Moved `fromToRotation()` above `calculateUpStep()`
+  - Moved `swingTwist()` above both gravity core functions
+
+- **Outcome**: GravityCameraModifier now initializes cleanly across environments.  
+  Wallstick and camera behavior stable at runtime. ✅
+
+---
+
 ### [2025-07-19] TransparencyController crash on nil part transparency
 - Symptom: Runtime error thrown by `TransparencyController` when targeting nil or missing parts.
 - Fix: Added fallback logic to skip parts that return `nil` or have no `Transparency` property.

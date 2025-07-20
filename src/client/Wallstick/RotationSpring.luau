@@ -1,16 +1,30 @@
 --!strict
-
 --[[
-This is heavily based off of spr
+	@module RotationSpring
 
-Copyright (c) 2024 Fractality. All rights reserved.
-Released under the MIT license.
+	Implements a critically-damped spring system for smooth and realistic rotational transitions.
 
-Docs & license can be found at https://github.com/Fraktality/spr
+	Docs & license can be found at https://github.com/Fraktality/spr
+	Graph: https://www.desmos.com/calculator/rzvw27ljh9
+	Copyright (c) 2024 Fractality. All rights reserved.
+	Released under the MIT license.
+	
+	Features:
+	- Supports underdamped, overdamped, and critically damped rotational motion
+	- High-precision axis-angle math for accurate and stable rotation
+	- Built-in sleep detection to reduce unnecessary updates
+	- Uses Orthonormalization to maintain numerical stability
 
-Graph:
-https://www.desmos.com/calculator/rzvw27ljh9
---]]
+	Usage:
+	- Call `RotationSpring.new(...)` with desired damping, frequency, and CFrame values
+	- `step(dt)` returns the updated CFrame but does **not** apply it.
+	- Access or update spring state with `getPosition()`, `setVelocity()`, and `setGoal(...)`
+	- Optionally check if the spring is at rest via `canSleep()`
+
+	Note:
+	- The system returns a rotated CFrame, but does not apply it to an object.
+	- Use in conjunction with render step or heartbeat updates for smooth motion.
+]]
 
 local pi = math.pi
 local exp = math.exp
@@ -41,6 +55,13 @@ export type RotationSpring = typeof(setmetatable(
 ))
 
 -- Constructors
+--[[
+	Creates a new RotationSpring.
+	@param dampingRatio [number] - How quickly the spring settles (1 = critically damped)
+	@param frequency [number] - Natural frequency in Hz (before conversion to rad/s)
+	@param position [CFrame] - Initial rotation
+	@param goal [CFrame] - Target rotation
+]]
 
 function RotationSpringClass.new(dampingRatio: number, frequency: number, position: CFrame, goal: CFrame)
 	local self = setmetatable({}, RotationSpringClass) :: RotationSpring
@@ -55,9 +76,9 @@ function RotationSpringClass.new(dampingRatio: number, frequency: number, positi
 	return self
 end
 
--- Private
+-- Private --
 
--- evaluate dot products in high precision
+-- Evaluate dot products in high precision
 local function dot(v0: Vector3, v1: Vector3)
 	return v0.X * v1.X + v0.Y * v1.Y + v0.Z * v1.Z
 end
@@ -98,13 +119,13 @@ end
 local function rotateAxis(r0: Vector3, c1: CFrame)
 	local c0 = CFrame.identity
 	local mag = r0.Magnitude
-	if mag > 1e-6 then
+	if mag > 1e-6 then -- threshold to treat rotation as significant
 		c0 = fromAxisAngle(r0.Unit, mag)
 	end
 	return c0 * c1
 end
 
--- axis*angle difference between two cframes
+-- axis * angle difference between two cframes
 local function axisAngleDiff(c0: CFrame, c1: CFrame)
 	-- use native axis (stable enough)
 	local axis = (c0 * c1:Inverse()):ToAxisAngle()
@@ -114,7 +135,7 @@ local function axisAngleDiff(c0: CFrame, c1: CFrame)
 	return axis.Unit * angle
 end
 
--- Public Methods
+-- Public Getters --
 
 function RotationSpringClass.getDampingRatio(self: RotationSpring)
 	return self.dampingRatio
@@ -136,6 +157,7 @@ function RotationSpringClass.getGoal(self: RotationSpring)
 	return self.goal
 end
 
+-- Public Setters --
 function RotationSpringClass.setDampingRatio(self: RotationSpring, dampingRatio: number)
 	self.dampingRatio = dampingRatio
 end
@@ -156,6 +178,7 @@ function RotationSpringClass.setGoal(self: RotationSpring, goal: CFrame)
 	self.goal = goal
 end
 
+-- Lifecycle --
 function RotationSpringClass.canSleep(self: RotationSpring)
 	local sleepP = areRotationsClose(self.position, self.goal)
 	local sleepV = self.velocity.Magnitude < SLEEP_ROTATION_VELOCITY
@@ -164,7 +187,8 @@ end
 
 function RotationSpringClass.step(self: RotationSpring, dt: number)
 	local d = self.dampingRatio
-	local f = self.frequency * (2 * pi)
+	local TAU = 2 * pi
+	local f = self.frequency * TAU
 	local g = self.goal
 	local p0 = self.position
 	local v0 = self.velocity
@@ -172,8 +196,8 @@ function RotationSpringClass.step(self: RotationSpring, dt: number)
 	local offset = axisAngleDiff(p0, g)
 	local decay = exp(-d * f * dt)
 
-	local pt: CFrame
-	local vt: Vector3
+	local pt: CFrame -- new position
+	local vt: Vector3 -- new velocity
 
 	if d == 1 then
 		-- critically damped

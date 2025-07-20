@@ -1,5 +1,7 @@
 --!strict
 
+-- Setup utility for rbx-wallstick
+-- Installs Wally packages, generates sourcemaps with Rojo, and applies type metadata via wally-package-types
 local fs = require("@lune/fs")
 local stdio = require("@lune/stdio")
 local process = require("@lune/process")
@@ -9,6 +11,7 @@ type Options = {
 	env: { [string]: string }?,
 }
 
+-- Runs a shell command and prints formatted output
 local function run(program: string, params: { string }, options: Options?)
 	stdio.write(stdio.style("bold"))
 	print(`> {program} {table.concat(params, " ")}`)
@@ -17,32 +20,40 @@ local function run(program: string, params: { string }, options: Options?)
 	local child = process.create(program, params, {
 		stdio = "inherit",
 		shell = true,
-		cwd = if options then options.cwd else nil,
-		env = if options then options.env else nil,
+		cwd = options and options.cwd or nil,
+		env = options and options.env or nil,
 	})
 
 	local result = child:status()
 
 	if result.code > 0 then
+		print(`Command failed with exit code {result.code}`)
 		process.exit(result.code)
 	end
 
-	local output = if result.ok then child.stdout:readToEnd() else child.stderr:readToEnd()
-
-	output = output:gsub("\n$", "")
-
-	return output
+	local output = result.ok and child.stdout:readToEnd() or child.stderr:readToEnd()
+	return output:gsub("\n$", "")
 end
 
+-- Step 1: Install dependencies
+print("Installing Wally packages...")
 run("wally", { "install" })
+
+-- Step 2: Generate sourcemap for development tools and type indexing
+print("Generating Rojo sourcemap...")
 run("rojo", { "sourcemap", "default.project.json", "-o", "sourcemap.json" })
 
-for _, folderName in { "Packages", "DevPackages", "ServerPackages" } do
-	if fs.isDir(folderName) then
-		run("wally-package-types", { "--sourcemap", "sourcemap.json", folderName })
-	end
+-- Step 3: Generate type metadata and ensure folders exist
+local folderList = { "Packages", "DevPackages", "ServerPackages" }
 
-	if not fs.isDir(folderName) then
+for _, folderName in folderList do
+	if fs.isDir(folderName) then
+		print(`Generating type metadata for {folderName}...`)
+		run("wally-package-types", { "--sourcemap", "sourcemap.json", folderName })
+	else
+		print(`Creating missing folder: {folderName}`)
 		fs.writeDir(folderName)
 	end
 end
+
+print("Setup complete.")

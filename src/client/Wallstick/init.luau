@@ -1,4 +1,39 @@
 --!strict
+--[[
+	@class Wallstick
+	@module Wallstick
+
+	Primary module that powers the custom wall-sticking system. This class manages dual character control,
+	camera reorientation, collision replication, and custom gravity logic.
+
+	Core Responsibilities:
+	- Creates a synced real/fake character pair for animation + physics separation
+	- Reorients camera and character relative to any surface using AlignPosition / AlignOrientation
+	- Caches surrounding parts as invisible collision proxies for custom physics
+	- Smoothly transitions camera tilt using a rotational spring system
+	- Handles surface switching, teleporting, and stick orientation logic
+	- Optionally replicates character offset for multiplayer synchronization
+
+	Depends On:
+	- GravityCamera: Manages camera up vector and spin anchor
+	- CharacterHelper: Packages character models for real/fake sync
+	- RotationSpring: Smooths camera tilt transitions
+	- Replication: Sends position offset data for networking
+	- Trove: Manages resource cleanup
+
+	Usage:
+	local wallstick = Wallstick.new({
+		parent = workspace,
+		origin = CFrame.identity,
+		retainWorldVelocity = true,
+		camera = {
+			tilt = true,
+			spin = true,
+		},
+	})
+
+	wallstick:set(surfacePart, surfaceNormal)
+]]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -18,7 +53,6 @@ local CLASS_NAMES_TO_CONVERT = {
 	["Seat"] = { ClassName = "Part" },
 	["VehicleSeat"] = { ClassName = "Part" },
 	["SpawnLocation"] = { ClassName = "Part" },
-
 	["Terrain"] = {
 		ClassName = "Part",
 		Size = Vector3.new(1, 1, 1),
@@ -26,13 +60,13 @@ local CLASS_NAMES_TO_CONVERT = {
 	},
 }
 
--- Class
+-- Class --
 
 local WallstickClass = {}
 WallstickClass.__index = WallstickClass
 WallstickClass.ClassName = "Wallstick"
 
--- Types
+-- Types --
 
 export type Options = {
 	parent: Instance,
@@ -68,7 +102,7 @@ export type Wallstick = typeof(setmetatable(
 	WallstickClass
 ))
 
--- Constructors
+-- Constructors --
 
 function WallstickClass.new(options: Options): Wallstick
 	local self = setmetatable({}, WallstickClass) :: Wallstick
@@ -145,7 +179,7 @@ function WallstickClass.new(options: Options): Wallstick
 	return self
 end
 
--- Private
+-- Private --
 
 local function fromToRotation(from: Vector3, to: Vector3, backupUnitAxis: Vector3?)
 	local dot = from:Dot(to)
@@ -178,12 +212,11 @@ function WallstickClass._updateCollisionGeometry(self: Wallstick)
 
 	local colliderBoxSizeHalf = Vector3.new(10, 10, 10)
 
-	-- stylua: ignore
-	-- selene: allow (deprecated)
-	local parts = workspace:FindPartsInRegion3WithIgnoreList(Region3.new(
-		realRootCF.Position - colliderBoxSizeHalf,
-		realRootCF.Position + colliderBoxSizeHalf
-	), {self.real.character, self.options.parent} :: {Instance}, 1000) :: {BasePart}
+	local parts = workspace:FindPartsInRegion3WithIgnoreList(
+		Region3.new(realRootCF.Position - colliderBoxSizeHalf, realRootCF.Position + colliderBoxSizeHalf),
+		{ self.real.character, self.options.parent } :: { Instance },
+		1000
+	) :: { BasePart }
 
 	for _, realPart in parts do
 		local collisionPart: BasePart
@@ -291,7 +324,7 @@ function WallstickClass._stepPhysics(self: Wallstick, _dt: number)
 	self:_trySendReplication(false)
 end
 
--- Public
+-- Public --
 
 function WallstickClass.getPart(self: Wallstick)
 	return self.part
@@ -388,7 +421,5 @@ end
 function WallstickClass.Destroy(self: Wallstick)
 	self.trove:Destroy()
 end
-
---
 
 return WallstickClass

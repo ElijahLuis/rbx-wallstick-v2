@@ -1,9 +1,38 @@
-/ServerPackages
-/DevPackages
-/Packages
+# Package manager folders
+/ServerPackages/
+/DevPackages/
+/Packages/
+
+# Package files
+
+
+# Build assets, lock files
 /assets
-
-*.rbxl.lock
-
 sourcemap.json
-.ds_store
+*.rbxl.lock
+wally.lock
+
+# Temp/backup files
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+*.orig
+*.rej
+*~
+
+# System files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# VS Code
+.vscode/
+
+# OS-specific
+.AppleDouble
+.LSOverride
+ehthumbs.db
+
+

@@ -1,28 +1,49 @@
 --!strict
+--[[
+	@file clientEntry.client.luau
+
+	Client bootstrap script for Wallstick character support.
+
+	Responsibilities:
+	- Initializes WallstickClass and binds it to the player's character
+	- Performs local raycasting to detect surfaces and apply wall-sticking logic
+	- Applies camera tilt/spin (if enabled) during surface transitions
+	- Uses a fallback to reset to terrain if falling too far
+	- Disconnects and cleans up Wallstick when the character dies
+
+	Requires:
+	- Wallstick module in ReplicatedStorage
+	- RaycastHelper module in SharedPackages
+	- Workspace must not have StreamingEnabled
+	- Expects `workspace:WaitForChild("Wallstick")` container for attachment parts
+]]
 
 local Players = game:GetService("Players")
+local localPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local SharedPackages = ReplicatedStorage.SharedPackages
 local RaycastHelper = require(SharedPackages.RaycastHelper)
-
 local WallstickClass = require(ReplicatedStorage.Wallstick)
 local Replication = require(ReplicatedStorage.Wallstick.Replication)
 
-local function ignoreCharacterParts(result: RaycastResult)
+-- Excludes parts belonging to player's limbs and accessories
+local function ignoreCharacterParts(result: RaycastResult): boolean
 	local hit = result.Instance :: BasePart
 	local accessory = hit:FindFirstAncestorWhichIsA("Accessory")
-
 	local character = (accessory or hit).Parent
 	local humanoid = character and character:FindFirstChildWhichIsA("Humanoid")
+
 	if character and humanoid then
-		return not (accessory or humanoid:GetLimb(hit) ~= Enum.Limb.Unknown)
+		local isLimb = humanoid:GetLimb(hit) ~= Enum.Limb.Unknown
+		return not (accessory or isLimb)
 	end
 
 	return true
 end
 
+-- Called on character spawn
 local function onCharacterAdded(character: Model)
 	local wallstick = WallstickClass.new({
 		parent = workspace:WaitForChild("Wallstick"),
@@ -34,26 +55,28 @@ local function onCharacterAdded(character: Model)
 		},
 	})
 
-	local humanoid = character and character:WaitForChild("Humanoid") :: Humanoid
-	local hrp = humanoid and humanoid.RootPart :: BasePart
+	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
+	if not humanoid.RootPart then
+		return
+	end
+	local hrp = humanoid.RootPart :: BasePart
 
 	local rayParams = RaycastHelper.params({
 		filterType = Enum.RaycastFilterType.Exclude,
-		instances = { character :: Instance },
+		instances = { character },
 	})
 
 	local simulationConnection = RunService.PreSimulation:Connect(function(_dt)
+		-- failsafe: if falling too far (into the void), reset to terrain
 		if wallstick:getFallDistance() < -50 then
 			wallstick:set(workspace.Terrain, Vector3.yAxis)
 			return
 		end
 
-		local hipHeight = humanoid.HipHeight
-		if humanoid.RigType == Enum.HumanoidRigType.R6 then
-			hipHeight = 2
-		end
-
+		-- adjust raycast based on rig type
+		local hipHeight = (humanoid.RigType == Enum.HumanoidRigType.R6) and 2 or humanoid.HipHeight
 		local hrpCF = hrp.CFrame
+
 		local result = RaycastHelper.raycast({
 			origin = hrpCF.Position,
 			direction = -(hipHeight + hrp.Size.Y / 2 + 0.1) * hrpCF.YVector,
@@ -74,12 +97,17 @@ local function onCharacterAdded(character: Model)
 	wallstick:Destroy()
 end
 
-assert(not workspace.StreamingEnabled, "Wallstick does not support streaming enabled.")
+-- Runtime checks
+assert(
+	not workspace.StreamingEnabled,
+	"Wallstick does not support StreamingEnabled. Please disable it in Workspace properties."
+)
 
-if Players.LocalPlayer.Character then
-	onCharacterAdded(Players.LocalPlayer.Character)
+-- Handle current and new players
+if localPlayer.Character then
+	onCharacterAdded(localPlayer.Character)
 end
 
-Players.LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
+localPlayer.CharacterAdded:Connect(onCharacterAdded)
 
 Replication.listenClient()

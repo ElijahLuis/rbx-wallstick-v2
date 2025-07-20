@@ -1,20 +1,77 @@
 --!strict
+--[[
+	@file GravityCameraModifier.luau
+	@within PlayerScripts
+	@function cameraObject:Update
+	@param dt number
 
-local transitionRate: number = 1
+	Modifies the Roblox PlayerModule camera to support spherical gravity environments.
 
-local upCFrame: CFrame = CFrame.identity
-local upVector: Vector3 = upCFrame.YVector
-local targetUpVector: Vector3 = upVector
-local twistCFrame: CFrame = CFrame.identity
+	Responsibilities:
+	- Overrides core camera modules (e.g., BaseCamera, Poppercam, VehicleCamera) to align with custom up vectors
+	- Applies spherical gravity by calculating interpolated up vectors and twist rotation
+	- Ensures stable camera orientation on curved surfaces (e.g., planets)
+	- Adds helper functions for tracking and setting gravity direction, rotation rate, and spin reference part
 
-local spinPart: BasePart = workspace.Terrain
-local prevSpinPart: BasePart = spinPart
-local prevSpinCFrame: CFrame = spinPart.CFrame
+	Dependencies:
+	- Assumes standard PlayerModule structure is intact
+	- Overrides behavior in: CameraModule, BaseCamera, Poppercam, ZoomController, VehicleCameraCore
+	- Uses `CameraUtils` for angle math, rotation type override, and input locking
+]]
 
 local UserGameSettings = UserSettings():GetService("UserGameSettings")
 
---
+local GravityState = {
+	transitionRate = 1,
+	upCFrame = CFrame.identity,
+	upVector = CFrame.identity.YVector,
+	targetUpVector = CFrame.identity.YVector,
+	twistCFrame = CFrame.identity,
+	spinPart = workspace.Terrain,
+	prevSpinPart = workspace.Terrain,
+	prevSpinCFrame = workspace.Terrain.CFrame,
+}
 
+-- Gravity core (internal logic)
+local function calculateUpStep(_dt: number)
+	if not workspace.CurrentCamera then
+		return
+	end
+	local axis = workspace.CurrentCamera.CFrame.RightVector
+
+	local sphericalArc = fromToRotation(GravityState.upVector, GravityState.targetUpVector, axis)
+	local transitionCF = CFrame.new():Lerp(sphericalArc, GravityState.transitionRate)
+
+	GravityState.upVector = transitionCF * GravityState.upVector
+	GravityState.upCFrame = transitionCF * GravityState.upCFrame
+end
+
+local function calculateSpinStep(_dt: number, inVehicle: boolean)
+	local theta = 0
+
+	if inVehicle then
+		theta = 0
+	elseif GravityState.spinPart == GravityState.prevSpinPart then
+		local rotation = GravityState.spinPart.CFrame.Rotation
+		local prevRotation = GravityState.prevSpinCFrame.Rotation
+
+		local delta = prevRotation:ToObjectSpace(rotation)
+		local spinAxis = delta:VectorToObjectSpace(prevRotation:VectorToObjectSpace(GravityState.upVector))
+
+		local _swing, twist = swingTwist(delta, spinAxis)
+		local deltaAxis, _deltaTheta = delta:ToAxisAngle()
+		local _twistAxis, twistTheta = twist:ToAxisAngle()
+
+		theta = math.sign(deltaAxis:Dot(spinAxis)) * twistTheta
+	end
+
+	GravityState.twistCFrame = CFrame.fromEulerAnglesYXZ(0, theta, 0)
+
+	GravityState.prevSpinPart = GravityState.spinPart
+	GravityState.prevSpinCFrame = GravityState.spinPart.CFrame
+end
+
+-- Utility (math support)
 local function fromToRotation(from: Vector3, to: Vector3, backupUnitAxis: Vector3?)
 	local dot = from:Dot(to)
 	if dot < -0.99999 then
@@ -39,50 +96,13 @@ local function swingTwist(inputCF: CFrame, relativeUnitAxis: Vector3)
 	return swing, twist
 end
 
-local function calculateUpStep(_dt: number)
-	local axis = workspace.CurrentCamera.CFrame.RightVector
-
-	local sphericalArc = fromToRotation(upVector, targetUpVector, axis)
-	local transitionCF = CFrame.new():Lerp(sphericalArc, transitionRate)
-
-	upVector = transitionCF * upVector
-	upCFrame = transitionCF * upCFrame
-end
-
-local function calculateSpinStep(_dt: number, inVehicle: boolean)
-	local theta = 0
-
-	if inVehicle then
-		theta = 0
-	elseif spinPart == prevSpinPart then
-		local rotation = spinPart.CFrame.Rotation
-		local prevRotation = prevSpinCFrame.Rotation
-
-		local delta = prevRotation:ToObjectSpace(rotation)
-		local spinAxis = delta:VectorToObjectSpace(prevRotation:VectorToObjectSpace(upVector))
-
-		local _swing, twist = swingTwist(delta, spinAxis)
-		local deltaAxis, _deltaTheta = delta:ToAxisAngle()
-		local _twistAxis, twistTheta = twist:ToAxisAngle()
-
-		theta = math.sign(deltaAxis:Dot(spinAxis)) * twistTheta
-	end
-
-	twistCFrame = CFrame.fromEulerAnglesYXZ(0, theta, 0)
-
-	prevSpinPart = spinPart
-	prevSpinCFrame = spinPart.CFrame
-end
-
---
-
 return function(PlayerModule: any)
 	------------
 	local cameraUtils = require(PlayerModule.CameraModule.CameraUtils) :: any
 
 	function cameraUtils.GetAngleBetweenXZVectors(v1: Vector3, v2: Vector3): number
-		v1 = upCFrame:VectorToObjectSpace(v1)
-		v2 = upCFrame:VectorToObjectSpace(v2)
+		v1 = GravityState.upCFrame:VectorToObjectSpace(v1)
+		v2 = GravityState.upCFrame:VectorToObjectSpace(v2)
 
 		return math.atan2(v2.X * v1.Z - v2.Z * v1.X, v2.X * v1.X + v2.Z * v1.Z)
 	end
@@ -126,7 +146,7 @@ return function(PlayerModule: any)
 
 	function baseCamera:CalculateNewLookCFrameFromArg(suppliedLookVector: Vector3?, rotateInput: Vector2): CFrame
 		local currLookVector: Vector3 = suppliedLookVector or self:GetCameraLookVector()
-		currLookVector = upCFrame:VectorToObjectSpace(currLookVector)
+		currLookVector = GravityState.upCFrame:VectorToObjectSpace(currLookVector)
 
 		local currPitchAngle = math.asin(currLookVector.Y)
 		local yTheta = math.clamp(rotateInput.Y, -max_y + currPitchAngle, -min_y + currPitchAngle)
@@ -144,87 +164,108 @@ return function(PlayerModule: any)
 	local setTransform = vehicleCameraCore.setTransform
 
 	function vehicleCameraCore:setTransform(transform: CFrame)
-		transform = upCFrame:ToObjectSpace(transform.Rotation) + transform.Position
+		transform = GravityState.upCFrame:ToObjectSpace(transform.Rotation) + transform.Position
 		return setTransform(self, transform)
 	end
 
-	------------
+	-- Gravity Camera API --
+
 	local cameraObject = require(PlayerModule.CameraModule) :: any
-	local cameraInput = require(PlayerModule.CameraModule.CameraInput) :: any
 
 	function cameraObject:GetUpVector(): Vector3
-		return upVector
+		return GravityState.upVector
 	end
 
 	function cameraObject:GetTargetUpVector(): Vector3
-		return targetUpVector
+		return GravityState.targetUpVector
 	end
 
 	function cameraObject:SetTargetUpVector(target: Vector3)
-		targetUpVector = target
+		GravityState.targetUpVector = target
 	end
 
 	function cameraObject:GetSpinPart(): BasePart
-		return spinPart
+		return GravityState.spinPart
 	end
 
 	function cameraObject:SetSpinPart(part: BasePart)
-		spinPart = part
-	end
-
-	function cameraObject:SetTransitionRate(rate: number)
-		transitionRate = rate
+		GravityState.spinPart = part
 	end
 
 	function cameraObject:GetTransitionRate(): number
-		return transitionRate
+		return GravityState.transitionRate
+	end
+
+	function cameraObject:SetTransitionRate(rate: number)
+		GravityState.transitionRate = math.clamp(rate, 0, 1)
 	end
 
 	function cameraObject:GetRotationType(): Enum.RotationType
 		return currentRotationType
 	end
 
+	-- Gravity Camera Core Loop
+	local cameraInput = require(PlayerModule.CameraModule.CameraInput) :: any
+
 	function cameraObject:Update(dt: number)
-		if self.activeCameraController then
-			self.activeCameraController:UpdateMouseBehavior()
+		if not self.activeCameraController then
+			return
+		end
 
-			local newCameraCFrame, newCameraFocus = self.activeCameraController:Update(dt)
-			local lockOffset = self.activeCameraController:GetIsMouseLocked()
-					and self.activeCameraController:GetMouseLockOffset()
-				or Vector3.new(0, 0, 0)
+		self.activeCameraController:UpdateMouseBehavior()
 
-			calculateUpStep(dt)
-			calculateSpinStep(dt, self:ShouldUseVehicleCamera())
+		local newCameraCFrame, newCameraFocus = self.activeCameraController:Update(dt)
+		local isMouseLocked = self.activeCameraController:GetIsMouseLocked()
+		local lockOffset = isMouseLocked and self.activeCameraController:GetMouseLockOffset() or Vector3.zero
 
-			local fixedCameraFocus = CFrame.new(newCameraFocus.Position) -- fixes an issue with vehicle cameras
-			local camRotation = upCFrame * twistCFrame * fixedCameraFocus:ToObjectSpace(newCameraCFrame)
-			local adjustedLockOffset = -newCameraCFrame:VectorToWorldSpace(lockOffset)
-				+ camRotation:VectorToWorldSpace(lockOffset)
+		-- Update gravity-based orientation
+		calculateUpStep(dt)
+		calculateSpinStep(dt, self:ShouldUseVehicleCamera())
 
-			newCameraFocus = fixedCameraFocus + adjustedLockOffset
-			newCameraCFrame = newCameraFocus * camRotation
+		-- Reconstruct camera CFrame with spherical alignment
+		local fixedCameraFocus = CFrame.new(newCameraFocus.Position)
+		local camRotation = GravityState.upCFrame
+			* GravityState.twistCFrame
+			* fixedCameraFocus:ToObjectSpace(newCameraCFrame)
 
-			if self.activeOcclusionModule then
-				newCameraCFrame, newCameraFocus = self.activeOcclusionModule:Update(dt, newCameraCFrame, newCameraFocus)
-			end
+		local adjustedLockOffset = -newCameraCFrame:VectorToWorldSpace(lockOffset)
+			+ camRotation:VectorToWorldSpace(lockOffset)
 
-			-- Here is where the new CFrame and Focus are set for this render frame
-			local currentCamera = game.Workspace.CurrentCamera :: Camera
-			currentCamera.CFrame = newCameraCFrame
-			currentCamera.Focus = newCameraFocus
+		newCameraFocus = fixedCameraFocus + adjustedLockOffset
+		newCameraCFrame = newCameraFocus * camRotation
 
-			-- fixes issue with follow camera
-			self.activeCameraController.lastCameraTransform = newCameraCFrame
-			self.activeCameraController.lastCameraFocus = newCameraFocus
+		-- Occlusion module (optional post-processing)
+		if self.activeOcclusionModule then
+			newCameraCFrame, newCameraFocus = self.activeOcclusionModule:Update(dt, newCameraCFrame, newCameraFocus)
+		end
 
-			-- Update to character local transparency as needed based on camera-to-subject distance
-			if self.activeTransparencyController then
-				self.activeTransparencyController:Update(dt)
-			end
+		-- Apply final camera transform
+		local currentCamera = workspace.CurrentCamera :: Camera
+		if not currentCamera then
+			task.spawn(function()
+				while not workspace.CurrentCamera do
+					task.wait()
+				end
+				workspace.CurrentCamera.CFrame = newCameraCFrame
+				workspace.CurrentCamera.Focus = newCameraFocus
+			end)
+			return
+		end
+		currentCamera.CFrame = newCameraCFrame
+		currentCamera.Focus = newCameraFocus
 
-			if cameraInput.getInputEnabled() then
-				cameraInput.resetInputForFrameEnd()
-			end
+		-- Sync controller state with new camera transform
+		self.activeCameraController.lastCameraTransform = newCameraCFrame
+		self.activeCameraController.lastCameraFocus = newCameraFocus
+
+		-- Transparency update based on new camera distance
+		if self.activeTransparencyController then
+			self.activeTransparencyController:Update(dt)
+		end
+
+		-- Reset camera input
+		if cameraInput.getInputEnabled() then
+			cameraInput.resetInputForFrameEnd()
 		end
 	end
 end

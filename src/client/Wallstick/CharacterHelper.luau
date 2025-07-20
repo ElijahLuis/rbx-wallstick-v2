@@ -1,17 +1,19 @@
 --!strict
+-- Utility module that constructs and packages both real and fake character models for wall-sticking.
+-- Adds physics-based control via AlignPosition and AlignOrientation, and manages collision groups and animation syncing.
 
 local Players = game:GetService("Players")
-
 local PlayerScripts = Players.LocalPlayer:WaitForChild("PlayerScripts")
 local RbxCharacterSounds = PlayerScripts:WaitForChild("RbxCharacterSounds")
 local CharacterSoundsController = require(RbxCharacterSounds:WaitForChild("Controller")) :: any
 
-local STRIP: { [string]: boolean } = {
+local STRIP_CLASSES: { [string]: boolean } = {
 	["Part"] = true,
 	["MeshPart"] = true,
 	["Motor6D"] = true,
 	["Humanoid"] = true,
 	["Attachment"] = true,
+	["Decal"] = true,
 }
 
 type BaseCharacter = {
@@ -31,7 +33,7 @@ export type FakeCharacter = BaseCharacter & {
 
 local CharacterHelper = {}
 
--- Private
+-- Private --
 
 local function getCharacter(player: Player): Model?
 	local character = player.Character
@@ -54,7 +56,7 @@ local function stripCopy(character: Model): Model
 	character.Archivable = archivable
 
 	for _, part in copy:GetDescendants() do
-		if not STRIP[part.ClassName] then
+		if not STRIP_CLASSES[part.ClassName] then
 			part:Destroy()
 		elseif part:IsA("BasePart") then
 			part.Transparency = 1
@@ -73,12 +75,12 @@ end
 
 local function createFakeCharacter(player: Player): Model?
 	local character = getCharacter(player)
-	if character then
-		local copy = stripCopy(character)
-		CharacterHelper.applyCollisionGroup(copy, "WallstickCollision")
-		return copy
+	if not character then
+		return nil
 	end
-	return nil
+	local copy = stripCopy(character)
+	CharacterHelper.applyCollisionGroup(copy, "WallstickCollision")
+	return copy
 end
 
 local function packageCharacter(character: Model?)
@@ -94,7 +96,37 @@ local function packageCharacter(character: Model?)
 	}
 end
 
--- Public
+local function applyAlignments(root: BasePart, attach: Attachment, includePosition: boolean)
+	local alignments = {}
+
+	if includePosition then
+		local alignPosition = Instance.new("AlignPosition")
+		alignPosition.Enabled = true
+		alignPosition.MaxVelocity = 10_000_000
+		alignPosition.Responsiveness = 200
+		alignPosition.Position = Vector3.zero
+		alignPosition.Mode = Enum.PositionAlignmentMode.OneAttachment
+		alignPosition.Attachment0 = attach
+		alignPosition.Parent = root
+
+		alignments.alignPosition = alignPosition
+	end
+
+	local alignOrientation = Instance.new("AlignOrientation")
+	alignOrientation.Enabled = includePosition -- disable for fake
+	alignOrientation.MaxTorque = 10_000_000
+	alignOrientation.Responsiveness = 200
+	alignOrientation.CFrame = CFrame.identity
+	alignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
+	alignOrientation.Attachment0 = attach
+	alignOrientation.Parent = root
+
+	alignments.alignOrientation = alignOrientation
+
+	return alignments
+end
+
+-- Public --
 
 function CharacterHelper.applyCollisionGroup(character: Model, collisionGroup: string)
 	local prevGroup = {}
@@ -112,52 +144,29 @@ function CharacterHelper.applyCollisionGroup(character: Model, collisionGroup: s
 	end
 end
 
+-- Builds the real player character with full control. Includes AlignPosition/AlignOrientation for full wallstick movement.
 function CharacterHelper.real(player: Player): RealCharacter
 	local character = getCharacter(player)
 	local packaged = packageCharacter(character) :: RealCharacter
 
 	local rootAttach = packaged.rootPart:WaitForChild("RootAttachment") :: Attachment
+	local alignments = applyAlignments(packaged.rootPart, rootAttach, true)
 
-	local alignPosition = Instance.new("AlignPosition")
-	alignPosition.Enabled = true
-	alignPosition.MaxVelocity = 10_000_000
-	alignPosition.Responsiveness = 200
-	alignPosition.Position = Vector3.zero
-	alignPosition.Mode = Enum.PositionAlignmentMode.OneAttachment
-	alignPosition.Attachment0 = rootAttach
-	alignPosition.Parent = packaged.rootPart
-
-	local alignOrientation = Instance.new("AlignOrientation")
-	alignOrientation.Enabled = true
-	alignOrientation.MaxTorque = 10_000_000
-	alignOrientation.Responsiveness = 200
-	alignOrientation.CFrame = CFrame.identity
-	alignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
-	alignOrientation.Attachment0 = rootAttach
-	alignOrientation.Parent = packaged.rootPart
-
-	packaged.alignPosition = alignPosition
-	packaged.alignOrientation = alignOrientation
+	packaged.alignPosition = alignments.alignPosition
+	packaged.alignOrientation = alignments.alignOrientation
 
 	return packaged
 end
 
+-- Builds invisible fake character for animation syncing or ghosting. Only AlignOrientation is applied, with position disabled.
 function CharacterHelper.fake(player: Player): FakeCharacter
 	local character = createFakeCharacter(player)
 	local packaged = packageCharacter(character) :: FakeCharacter
 
 	local rootAttach = packaged.rootPart:WaitForChild("RootAttachment") :: Attachment
+	local alignments = applyAlignments(packaged.rootPart, rootAttach, false)
 
-	local alignOrientation = Instance.new("AlignOrientation")
-	alignOrientation.Enabled = false
-	alignOrientation.MaxTorque = 10_000_000
-	alignOrientation.Responsiveness = 200
-	alignOrientation.CFrame = CFrame.identity
-	alignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
-	alignOrientation.Attachment0 = rootAttach
-	alignOrientation.Parent = packaged.rootPart
-
-	packaged.alignOrientation = alignOrientation
+	packaged.alignOrientation = alignments.alignOrientation
 
 	return packaged
 end
@@ -172,6 +181,14 @@ function CharacterHelper.setMyPerformer(real: Model, fake: Model?)
 	animateController.matchAnimate(humanoid)
 end
 
---
+-- Utility: prints all descendants of a character model for debugging purposes
+--[[
+function CharacterHelper.debug(character: Model)
+	print("Character Debug:", character:GetFullName())
+	for _, desc in character:GetDescendants() do
+		print(`[{desc.ClassName}] {desc:GetFullName()}`)
+	end
+end 
+]]
 
 return CharacterHelper

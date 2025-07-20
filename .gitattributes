@@ -1,2 +1,11 @@
-# Auto detect text files and perform LF normalization
+# Normalize line endings for all text files
 * text=auto
+
+# Enforce LF endings for common config and source files
+*.lua  text eol=lf
+*.luau text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.md   text eol=lf
+*.yml  text eol=lf
+*.txt  text eol=lf

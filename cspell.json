@@ -5,16 +5,13 @@
     "dictionaries": [],
     "words": [
         "Archivable",
-        "CFRAME",
+        "CFrame",
         "cframes",
         "Collidable",
         "Freefall",
-        "lerp",
         "Orthonormalize",
         "overdamped",
-        "Raycast",
-        "rojo",
-        "setmetatable",
+        "RayCast",
         "spherecast",
         "underdamped",
         "wallstick"

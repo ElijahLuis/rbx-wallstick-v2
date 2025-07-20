@@ -51,12 +51,48 @@ You are assisting in the modernization of the **rbx-wallstick** module — a wal
 - **Runtime Checks**: Includes try/catch-style logic for collision group setup  
 
 ### `PlayerScripts/GravityCameraModifier.luau`
-- **Purpose**: Injects camera patch into PlayerModule for surface-relative alignment  
-- **Hooked via**: `PlayerScripts/init.luau`  
-- **Note**: Works in tandem with GravityCamera.luau, should remain lightweight  
+- **Purpose**: Injects camera patch into PlayerModule for surface-relative alignment
+- **Hooked via**: `PlayerScripts/init.luau`
+- **Note**: Works in tandem with GravityCamera.luau, should remain lightweight
+
+### `src/client/Wallstick/CharacterHelper.luau`
+- **Purpose**: Packages real and fake character models, applies alignment attachments
+- **Dependencies**: PlayerScripts, CharacterSoundsController
+
+### `src/client/Wallstick/GravityCamera.luau`
+- **Purpose**: Wrapper API around PlayerModule camera with gravity-aware helpers
+- **Dependencies**: Modified PlayerModule in PlayerScripts
+
+### `src/client/Wallstick/RotationSpring.luau`
+- **Purpose**: Critically damped rotational spring used for smooth camera tilt
+
+### `src/client/Wallstick/Replication.luau`
+- **Purpose**: Network layer for syncing part offsets across clients and server
+- **Notes**: Uses TypedRemote for typed events
+
+### `src/client/clientEntry.client.luau`
+- **Purpose**: Client bootstrap; spawns Wallstick on character spawn and performs raycast checks
+### `src/server/PlayerScripts/init.luau`
+- **Purpose**: Replaces default PlayerModule and Character scripts with custom versions
+
+### `src/server/PlayerScripts/Animate/init.client.luau`
+- **Purpose**: Loads animation controller on client
+
+### `src/server/PlayerScripts/Animate/Controller.luau`
+- **Purpose**: Binds animations from SharedPackages.CharacterAnimate to performer humanoid
+
+### `src/server/PlayerScripts/CharacterSounds/init.client.luau`
+- **Purpose**: Loads CharacterSounds controller for audio emitters
+
+### `src/server/PlayerScripts/CharacterSounds/Controller.luau`
+- **Purpose**: Manages per-player sound emitters and cleanup
+
+### `src/server/PlayerScripts/Animate/PlayEmote.model.json`
+- **Purpose**: Declares `PlayEmote` BindableFunction instance used by Animate.Controller
+- **Dependencies**: Consume via `Animate/Controller.luau`
+- **Notes**: Keep in sync with any server-side emote triggers
 
 *(Add more as modules are documented)*
-
 ---
 
 ## 📂 File Access Priority
@@ -126,6 +162,18 @@ Use this section to track meaningful discoveries, design choices, or bugs/fixes 
 ### [2025-07-19] TransparencyController crash on nil part transparency
 - Symptom: Runtime error thrown by `TransparencyController` when targeting nil or missing parts.
 - Fix: Added fallback logic to skip parts that return `nil` or have no `Transparency` property.
+
+---
+
+### [2025-07-20] Initial code scan documentation
+- Reviewed client and server modules starting from `src/client/Wallstick/init.luau`
+- Documented responsibilities and dependencies for each major file in File Purposes
+- Observed consistent use of custom PlayerModule wrappers and typed remotes
+
+### [2025-07-20] Dry-run structure verification
+- Added File Purpose entry for `src/server/PlayerScripts/Animate/PlayEmote.model.json`
+- Assuming all character rigs include `RootAttachment`; unknown behavior otherwise
+- Possible refactor opportunity: unify replication debounce timing
 
 ---
 

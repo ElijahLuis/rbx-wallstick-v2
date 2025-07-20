@@ -37,9 +37,12 @@ local TweenService = game:GetService("TweenService") :: TweenService
 local TypedRemote = require(game.ReplicatedStorage.SharedPackages.TypedRemote)
 local Replication = {}
 
+type LimbMap = { [string]: CFrame }
+
 type ReplicationFrame = {
 	part: BasePart,
 	offset: CFrame,
+	limbs: LimbMap?,
 }
 
 type ClientReplicationFrame = ReplicationFrame & {
@@ -49,14 +52,15 @@ type ClientReplicationFrame = ReplicationFrame & {
 }
 
 local syncRemote = TypedRemote.func("SyncRemote", script) :: TypedRemote.Function<(), ({ [Player]: ReplicationFrame })>
-local replicatorRemote = TypedRemote.event("ReplicatorRemote", script) :: TypedRemote.Event<BasePart?, CFrame?, Player?>
+local replicatorRemote =
+	TypedRemote.event("ReplicatorRemote", script) :: TypedRemote.Event<BasePart?, CFrame?, LimbMap?, Player?>
 Replication.ENABLED = true
 Replication.REPLICATE_DEBOUNCE_TIME = 0.2
 
-function Replication.send(part: BasePart, offset: CFrame)
+function Replication.send(part: BasePart, offset: CFrame, limbs: LimbMap?)
 	assert(RunService:IsClient(), "This API can only be called from the client.")
 	if Replication.ENABLED then
-		replicatorRemote:FireServer(part, offset)
+		replicatorRemote:FireServer(part, offset, limbs)
 	end
 end
 
@@ -74,17 +78,18 @@ function Replication.listenServer()
 		replicatorRemote:FireAllClients(nil, nil, player)
 	end)
 
-	replicatorRemote.OnServerEvent:Connect(function(player, part, offset)
+	replicatorRemote.OnServerEvent:Connect(function(player, part, offset, limbs)
 		if part and offset then
 			framesByPlayer[player] = {
 				part = part,
 				offset = offset,
+				limbs = limbs,
 			}
 		else
 			framesByPlayer[player] = nil
 		end
 
-		replicatorRemote:FireAllClients(part, offset, player)
+		replicatorRemote:FireAllClients(part, offset, limbs, player)
 	end)
 
 	syncRemote.OnServerInvoke = function(_player)
@@ -119,13 +124,14 @@ function Replication.listenClient()
 			clientFrameByPlayer[player] = {
 				part = frame.part,
 				offset = frame.offset,
+				limbs = frame.limbs,
 				fromOffset = frame.offset,
 				lerpOffset = frame.offset,
 				receivedAt = os.clock(),
 			}
 		end
 
-		replicatorRemote.OnClientEvent:Connect(function(part, offset, sentPlayer)
+		replicatorRemote.OnClientEvent:Connect(function(part, offset, limbs, sentPlayer)
 			local player = sentPlayer :: Player
 
 			if part and offset then
@@ -134,6 +140,7 @@ function Replication.listenClient()
 					or {
 						part = part,
 						offset = offset,
+						limbs = limbs,
 						fromOffset = offset,
 						lerpOffset = offset,
 						receivedAt = now,
@@ -145,6 +152,7 @@ function Replication.listenClient()
 				clientFrameByPlayer[player] = {
 					part = part,
 					offset = offset,
+					limbs = limbs,
 					fromOffset = fromOffset,
 					lerpOffset = fromOffset,
 					receivedAt = now,
@@ -175,9 +183,16 @@ function Replication.listenClient()
 
 				local targetCF = frame.part.CFrame * frame.lerpOffset
 
+				local limbOffsets = frame.limbs or {}
+
 				for _, part in parts do
 					if part:IsDescendantOf(character) then
-						part.CFrame = targetCF
+						local limbOffset = limbOffsets[part.Name]
+						if limbOffset then
+							part.CFrame = targetCF * limbOffset
+						else
+							part.CFrame = targetCF
+						end
 						part.Anchored = true
 					end
 				end

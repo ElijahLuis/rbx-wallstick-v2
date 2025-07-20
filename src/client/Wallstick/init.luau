@@ -275,7 +275,16 @@ function WallstickClass._trySendReplication(self: Wallstick, force: boolean)
 		local realRootCFrame = self:_getCalculatedRealRootCFrame()
 		local offset = self.part.CFrame:ToObjectSpace(realRootCFrame)
 
-		Replication.send(self.part, offset)
+		local root = self.real.rootPart
+		local limbs: { [string]: CFrame } = {}
+		for _, name in ipairs({ "Head", "Torso", "UpperTorso", "LowerTorso" }) do
+			local limb = self.real.character:FindFirstChild(name, true)
+			if limb and limb ~= root and limb:IsA("BasePart") then
+				limbs[name] = root.CFrame:ToObjectSpace((limb :: BasePart).CFrame)
+			end
+		end
+
+		Replication.send(self.part, offset, limbs)
 	end
 end
 

@@ -46,6 +46,7 @@ local Replication = require(script.Replication)
 local GravityCamera = require(script.GravityCamera)
 local RotationSpring = require(script.RotationSpring)
 local CharacterHelper = require(script.CharacterHelper)
+local WallstickCharacterState = CharacterHelper.WallstickCharacterState
 
 local globalRenderTicket = 0
 
@@ -88,6 +89,8 @@ export type Wallstick = typeof(setmetatable(
 		fallStartHeight: number,
 		replicateTick: number,
 
+		state: CharacterHelper.WallstickCharacterState,
+
 		part: BasePart,
 		normal: Vector3,
 
@@ -112,6 +115,7 @@ function WallstickClass.new(options: Options): Wallstick
 	self.options = table.clone(options)
 	self.fallStartHeight = -1
 	self.replicateTick = -1
+	self.state = CharacterHelper.getState(Players.LocalPlayer)
 
 	self.part = workspace.Terrain
 	self.normal = Vector3.yAxis
@@ -180,6 +184,27 @@ function WallstickClass.new(options: Options): Wallstick
 end
 
 -- Private --
+
+function WallstickClass:_updateState(newState: WallstickCharacterState)
+	CharacterHelper.setState(Players.LocalPlayer, newState)
+	self.state = newState
+
+	if newState == WallstickCharacterState.Anchored then
+		for _, part in self.real.character:GetDescendants() do
+			if part:IsA("BasePart") then
+				part.Transparency = 1
+			end
+		end
+		self.fake.rootPart.Anchored = false
+	elseif newState == WallstickCharacterState.Freefall then
+		for _, part in self.real.character:GetDescendants() do
+			if part:IsA("BasePart") then
+				part.Transparency = 0
+			end
+		end
+		self.fake.rootPart.Anchored = true
+	end
+end
 
 local function fromToRotation(from: Vector3, to: Vector3, backupUnitAxis: Vector3?)
 	local dot = from:Dot(to)
@@ -300,6 +325,19 @@ function WallstickClass._stepRenderBeforeCamera(self: Wallstick, dt: number)
 end
 
 function WallstickClass._stepRenderCharacter(self: Wallstick, _dt: number)
+	local state = self.state or WallstickCharacterState.Freefall
+
+	if state == WallstickCharacterState.Freefall then
+		self.fake.rootPart.CFrame = self.real.rootPart.CFrame
+		self.fake.alignOrientation.Enabled = false
+		return
+	elseif state == WallstickCharacterState.Rebounding then
+		self.fake.rootPart.AssemblyLinearVelocity = Vector3.new(0, 20, 0)
+	elseif state == WallstickCharacterState.Transitioning then
+		local blended = self.real.rootPart.CFrame:Lerp(self.fake.rootPart.CFrame, 0.5)
+		self.fake.rootPart.CFrame = blended
+	end
+
 	local realRootCF = self:_getCalculatedRealRootCFrame()
 	local rootCameraOffset = realRootCF:ToObjectSpace(workspace.CurrentCamera.CFrame)
 	local geometryCameraCF = self.fake.rootPart.CFrame * rootCameraOffset
@@ -321,6 +359,16 @@ function WallstickClass._stepPhysics(self: Wallstick, _dt: number)
 	if self.fake.rootPart.Position.Y <= workspace.FallenPartsDestroyHeight then
 		self:Destroy()
 		return
+	end
+
+	local state = self.state or WallstickCharacterState.Freefall
+
+	if state == WallstickCharacterState.Freefall then
+		self.fake.rootPart.CFrame = self.real.rootPart.CFrame
+		self:_trySendReplication(false)
+		return
+	elseif state == WallstickCharacterState.Rebounding then
+		self.fake.rootPart.AssemblyLinearVelocity += Vector3.new(0, -1, 0)
 	end
 
 	local realRootCFrame = self:_getCalculatedRealRootCFrame()
@@ -396,6 +444,7 @@ function WallstickClass.set(self: Wallstick, part: BasePart, normal: Vector3, te
 
 	self.fallStartHeight = fakeRoot.Position.Y
 
+	self:_updateState(WallstickCharacterState.Anchored)
 	self:_updateCollisionGeometry()
 
 	if self.part ~= prevPart then
@@ -428,6 +477,7 @@ function WallstickClass.setAndTeleport(self: Wallstick, part: BasePart, normal: 
 end
 
 function WallstickClass.Destroy(self: Wallstick)
+	self:_updateState(WallstickCharacterState.Freefall)
 	self.trove:Destroy()
 end
 

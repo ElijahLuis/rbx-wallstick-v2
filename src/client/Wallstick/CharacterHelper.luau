@@ -16,6 +16,18 @@ local STRIP_CLASSES: { [string]: boolean } = {
 	["Decal"] = true,
 }
 
+export type WallstickCharacterState = "Freefall" | "Anchored" | "Rebounding" | "Transitioning"
+
+-- Enum-like table describing wall-stick states
+local WallstickCharacterState = {
+	Freefall = "Freefall",
+	Anchored = "Anchored",
+	Rebounding = "Rebounding",
+	Transitioning = "Transitioning",
+}
+
+local characterDataByPlayer: { [Player]: { state: WallstickCharacterState } } = {}
+
 type BaseCharacter = {
 	character: Model,
 	rootPart: BasePart,
@@ -34,6 +46,31 @@ export type FakeCharacter = BaseCharacter & {
 local CharacterHelper = {}
 
 -- Private --
+
+function CharacterHelper.getData(player: Player)
+	local data = characterDataByPlayer[player]
+	if not data then
+		data = { state = WallstickCharacterState.Freefall }
+		characterDataByPlayer[player] = data
+	end
+	return data
+end
+
+function CharacterHelper.getState(player: Player): WallstickCharacterState
+	return CharacterHelper.getData(player).state
+end
+
+function CharacterHelper.setState(player: Player, newState: WallstickCharacterState?)
+	if not newState or not (WallstickCharacterState :: any)[newState] then
+		newState = WallstickCharacterState.Freefall
+	end
+
+	local data = CharacterHelper.getData(player)
+	if data.state ~= newState then
+		print(`[Wallstick] {player.Name} state: {data.state} -> {newState}`)
+		data.state = newState
+	end
+end
 
 local function getCharacter(player: Player): Model?
 	local character = player.Character
@@ -184,11 +221,13 @@ end
 -- Utility: prints all descendants of a character model for debugging purposes
 --[[
 function CharacterHelper.debug(character: Model)
-	print("Character Debug:", character:GetFullName())
-	for _, desc in character:GetDescendants() do
-		print(`[{desc.ClassName}] {desc:GetFullName()}`)
-	end
-end 
+        print("Character Debug:", character:GetFullName())
+        for _, desc in character:GetDescendants() do
+                print(`[{desc.ClassName}] {desc:GetFullName()}`)
+        end
+end
 ]]
+
+CharacterHelper.WallstickCharacterState = WallstickCharacterState
 
 return CharacterHelper

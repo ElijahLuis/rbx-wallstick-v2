@@ -46,6 +46,7 @@ You are assisting in the modernization of the **rbx-wallstick** module — a wal
 - **Hooks into**: CharacterHelper, Replication
 - **Notes**: Depends on `clientEntry.client.luau` for initialization
   - `_trySendReplication` now sends torso/head offsets for smoother remote animation
+  - Uses `CharacterHelper.setState()` to toggle `WallstickCharacterState`
 
 ### `src/server/init.server.luau`
 - **Purpose**: Server bootstrap — sets up collision groups, player script overrides, replication listener  
@@ -59,6 +60,8 @@ You are assisting in the modernization of the **rbx-wallstick** module — a wal
 ### `src/client/Wallstick/CharacterHelper.luau`
 - **Purpose**: Packages real and fake character models, applies alignment attachments
 - **Dependencies**: PlayerScripts, CharacterSoundsController
+- **Design Notes**: Now stores per-player `state` via `WallstickCharacterState` enum
+  table. Use `CharacterHelper.setState()` and `getState()` to update and query.
 
 ### `src/client/Wallstick/GravityCamera.luau`
 - **Purpose**: Wrapper API around PlayerModule camera with gravity-aware helpers
@@ -191,6 +194,12 @@ Ready for Codex reactivation and continued development.
 ### [2025-07-21] Limb replication added
 - Replication module now broadcasts torso/head offsets
 - Wallstick `_trySendReplication` supplies limb data per player
+
+### [2025-07-22] Character state tracking implemented
+- Added `WallstickCharacterState` enum in CharacterHelper
+- `characterData.state` now stores per-player state
+- Wallstick logic reacts to state during `_stepRenderCharacter` and `_stepPhysics`
+- Unknown states default to Freefall
 
 ---
 

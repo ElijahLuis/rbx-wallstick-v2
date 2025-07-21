@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# Preppr script. Detects shell and routes to correct script for Git workflow.
+# Usage: ./preppr <PR_NUMBER>
+
+PR="$1"
+
+if [ -z "$PR" ]; then
+  echo "Please provide a pull request number."
+  echo "Example usage: ./preppr 6"
+  exit 1
+fi
+
+# Detect WSL (Bash) vs native Windows (PowerShell)
+if grep -q Microsoft /proc/version 2>/dev/null; then
+
+  echo "Detected WSL → Running preppr.sh..."
+  if [ -f "./preppr.sh" ]; then
+    ./preppr.sh "$PR"
+  else
+    echo "❌ preppr.sh not found!"
+    exit 1
+  fi
+
+else
+
+  echo "Detected Windows → Running preppr.ps1..."
+  if [ -f "./preppr.ps1" ]; then
+    powershell.exe -ExecutionPolicy Bypass -File preppr.ps1 -PRNumber "$PR"
+  else
+    echo "❌ preppr.ps1 not found!"
+    exit 1
+  fi
+
+fi

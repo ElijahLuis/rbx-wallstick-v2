@@ -26,6 +26,10 @@ desktop.ini
 
 # VS Code
 .vscode/
+devflow
+devflow.ps1
+devflow.sh
+
 
 
 

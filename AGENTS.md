@@ -48,6 +48,8 @@ You are assisting in the modernization of the **rbx-wallstick** module — a wal
   - `_trySendReplication` now sends torso/head offsets for smoother remote animation
   - Uses `CharacterHelper.setState()` to toggle `WallstickCharacterState`
   - Stores original transparency values to restore when exiting wallstick
+  - `_stepPhysics` logs current state and forces Freefall if falling unanchored
+  - Tracks `freefallTick` and warns after 3s in Freefall to debug stuck players
 
 ### `src/server/init.server.luau`
 - **Purpose**: Server bootstrap — sets up collision groups, player script overrides, replication listener  
@@ -205,6 +207,11 @@ Ready for Codex reactivation and continued development.
 ### [2025-07-21] Transparency restore fix
 - Wallstick now records original BasePart transparency on initialization
 - `_updateState` restores these values when returning to Freefall
+
+### [2025-07-22] Freefall fallback and timeout
+- `_stepPhysics` now prints current state and switches to Freefall when falling
+  while unanchored
+- `freefallTick` tracks entry time; logs a timeout warning after 3 seconds
 
 ---
 

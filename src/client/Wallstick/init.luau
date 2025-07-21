@@ -88,6 +88,7 @@ export type Wallstick = typeof(setmetatable(
 		options: Options,
 		fallStartHeight: number,
 		replicateTick: number,
+		freefallTick: number,
 
 		state: CharacterHelper.WallstickCharacterState,
 
@@ -115,6 +116,7 @@ function WallstickClass.new(options: Options): Wallstick
 	self.options = table.clone(options)
 	self.fallStartHeight = -1
 	self.replicateTick = -1
+	self.freefallTick = os.clock()
 	self.state = CharacterHelper.getState(Players.LocalPlayer)
 
 	self.part = workspace.Terrain
@@ -204,6 +206,7 @@ function WallstickClass:_updateState(newState: WallstickCharacterState)
 		end
 		self.fake.rootPart.Anchored = false
 	elseif newState == WallstickCharacterState.Freefall then
+		self.freefallTick = os.clock()
 		for _, part in self.real.character:GetDescendants() do
 			if part:IsA("BasePart") then
 				local original = self.originalTransparency[part]
@@ -364,12 +367,29 @@ function WallstickClass._stepRenderCharacter(self: Wallstick, _dt: number)
 end
 
 function WallstickClass._stepPhysics(self: Wallstick, _dt: number)
+	warn("[Wallstick] _stepPhysics running. Current state:", self.state)
+
+	if
+		self.state ~= WallstickCharacterState.Freefall
+		and self.fake.rootPart
+		and not self.fake.rootPart.Anchored
+		and self.fake.rootPart.Velocity.Y < -1
+	then
+		self:_updateState(WallstickCharacterState.Freefall)
+	end
 	if self.fake.rootPart.Position.Y <= workspace.FallenPartsDestroyHeight then
 		self:Destroy()
 		return
 	end
 
 	local state = self.state or WallstickCharacterState.Freefall
+
+	if state == WallstickCharacterState.Freefall then
+		if os.clock() - self.freefallTick > 3 then
+			warn("[Wallstick] Freefall timeout - potential recovery")
+			self.freefallTick = os.clock()
+		end
+	end
 
 	if state == WallstickCharacterState.Freefall then
 		self.fake.rootPart.CFrame = self.real.rootPart.CFrame

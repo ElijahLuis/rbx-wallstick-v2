@@ -10,10 +10,9 @@ sourcemap.json
 wally.lock
 
 # Shell scripts
-reapr.sh
-uppr.sh
+reapr
+uppr
 preppr
-preppr.sh
 
 # Temp/backup files
 *.log

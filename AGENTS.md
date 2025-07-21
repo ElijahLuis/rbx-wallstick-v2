@@ -220,5 +220,10 @@ Ready for Codex reactivation and continued development.
 - `isJumping` now toggles based solely on `StateChanged`
 - Logs new humanoid state for debugging
 
+### [2025-07-21] Velocity-based jump detection
+- State tracker now checks vertical velocity each Heartbeat
+- Detects jump start when Y speed > 2
+- Clears jump state once vertical speed falls to 0 or below
+
 ---
 

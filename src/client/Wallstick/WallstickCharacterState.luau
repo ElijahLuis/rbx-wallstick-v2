@@ -13,6 +13,7 @@
           cleaned up via Trove by the creator.
 ]]
 
+local RunService = game:GetService("RunService")
 local Trove = require(game:GetService("ReplicatedStorage").SharedPackages.Trove)
 local CharacterHelper = require(script.Parent.CharacterHelper)
 
@@ -43,7 +44,7 @@ function StateClass.new(trove: Trove.Trove, real: CharacterHelper.RealCharacter)
 
 	self.state = {
 		isAnchored = real.rootPart.Anchored,
-		isJumping = real.humanoid:GetState() == Enum.HumanoidStateType.Jumping,
+		isJumping = false,
 	}
 
 	self.trove:Add(real.rootPart:GetPropertyChangedSignal("Anchored"):Connect(function()
@@ -51,15 +52,25 @@ function StateClass.new(trove: Trove.Trove, real: CharacterHelper.RealCharacter)
 		print("[StateTracker] Anchored changed:", real.rootPart.Anchored)
 	end))
 
-	self.trove:Add(real.humanoid.StateChanged:Connect(function(_, newState)
-		print("[Humanoid] New State:", newState.Name)
+	local lastY = real.rootPart.Position.Y
+	local isJumping = false
 
-		self.state.isJumping = newState == Enum.HumanoidStateType.Jumping
+	self.trove:Add(RunService.Heartbeat:Connect(function()
+		local velocity = real.rootPart.Velocity
+		local verticalSpeed = velocity.Y
 
-		if self.state.isJumping then
-			print("[StateTracker] Jump START")
-		else
-			print("[StateTracker] Jump END → New State:", newState.Name)
+		-- Detect jump by checking for sudden upward movement
+		if verticalSpeed > 2 and not isJumping then
+			isJumping = true
+			self.state.isJumping = true
+			print("[StateTracker] Jump START (Velocity Triggered)")
+		end
+
+		-- Reset jump once vertical speed drops or falls
+		if isJumping and verticalSpeed <= 0 then
+			isJumping = false
+			self.state.isJumping = false
+			print("[StateTracker] Jump END (Velocity Dropped)")
 		end
 	end))
 

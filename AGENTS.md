@@ -73,6 +73,10 @@ You are assisting in the modernization of the **rbx-wallstick** module — a wal
   - Now replicates head and torso offsets in addition to root part
   - Limb data throttled via `REPLICATE_DEBOUNCE_TIME`
 
+### `src/shared/CFrameUtils.luau`
+- **Purpose**: Shared math helpers providing `fromToRotation()` and `swingTwist()`
+  for quaternion conversions used by Wallstick and GravityCameraModifier
+
 ### `src/client/clientEntry.client.luau`
 - **Purpose**: Client bootstrap; spawns Wallstick on character spawn and performs raycast checks
 ### `src/server/PlayerScripts/init.luau`

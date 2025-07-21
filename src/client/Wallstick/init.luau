@@ -131,6 +131,7 @@ function WallstickClass.new(options: Options): Wallstick
 	self.real = CharacterHelper.real(Players.LocalPlayer)
 	self.fake = CharacterHelper.fake(Players.LocalPlayer)
 	self.stateTracker = WallstickCharacterState.new(self.trove, self.real)
+	print("[Wallstick] Initialized state tracker")
 
 	if DEBUG_STATE then
 		self.trove:Add(RunService.Heartbeat:Connect(function()

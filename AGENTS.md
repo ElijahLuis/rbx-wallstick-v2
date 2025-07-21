@@ -210,5 +210,10 @@ Ready for Codex reactivation and continued development.
 - Humanoid.Jumping now sets `isJumping` flag
 - Humanoid.StateChanged clears flag when leaving Jumping
 
+### [2025-07-21] Jump debug improvements
+- Prints when root part anchored changes
+- Prints jump start and end with new state name
+- `Wallstick` confirms state tracker initialization
+
 ---
 

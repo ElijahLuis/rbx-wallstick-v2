@@ -2,13 +2,13 @@
 --[[
         @module WallstickCharacterState
 
-        Simple state tracker for wall-sticking characters. Currently exposes
-        read-only flags for whether the real character's root part is anchored
-        and whether the humanoid is in the Jumping state.
+       Simple state tracker for wall-sticking characters. Currently exposes
+       read-only state for whether the real character's root part is anchored
+       and whether the humanoid is in the Jumping state.
 
         Design Notes:
-        - Only provides Get() method per user request. Future work may expose
-          mutators or additional flags.
+       - Only provides Get() method per user request. Future work may expose
+         mutators or additional state fields.
         - Uses direct property change connections on the real character and is
           cleaned up via Trove by the creator.
 ]]
@@ -21,7 +21,7 @@ local StateClass = {}
 StateClass.__index = StateClass
 StateClass.ClassName = "WallstickCharacterState"
 
-export type Flags = {
+export type State = {
 	isAnchored: boolean,
 	isJumping: boolean,
 }
@@ -29,7 +29,7 @@ export type Flags = {
 export type WallstickCharacterState = typeof(setmetatable({}, StateClass)) & {
 	trove: Trove.Trove,
 	real: CharacterHelper.RealCharacter,
-	flags: Flags,
+	state: State,
 }
 
 function StateClass.new(trove: Trove.Trove, real: CharacterHelper.RealCharacter): WallstickCharacterState
@@ -37,30 +37,39 @@ function StateClass.new(trove: Trove.Trove, real: CharacterHelper.RealCharacter)
 
 	self.trove = trove
 	self.real = real
-	self.flags = {
+
+	assert(real.humanoid:IsA("Humanoid"), "Invalid Humanoid")
+	assert(real.rootPart:IsA("BasePart"), "Invalid RootPart")
+
+	self.state = {
 		isAnchored = real.rootPart.Anchored,
 		isJumping = real.humanoid:GetState() == Enum.HumanoidStateType.Jumping,
 	}
 
 	self.trove:Add(real.rootPart:GetPropertyChangedSignal("Anchored"):Connect(function()
-		self.flags.isAnchored = real.rootPart.Anchored
+		self.state.isAnchored = real.rootPart.Anchored
+		print("[StateTracker] Anchored changed:", real.rootPart.Anchored)
 	end))
 
 	self.trove:Add(real.humanoid.Jumping:Connect(function()
-		self.flags.isJumping = true
+		self.state.isJumping = true
+		print("[StateTracker] Jump START")
 	end))
 
 	self.trove:Add(real.humanoid.StateChanged:Connect(function(_, newState)
 		if newState ~= Enum.HumanoidStateType.Jumping then
-			self.flags.isJumping = false
+			if self.state.isJumping then
+				print("[StateTracker] Jump END \226\134\146 New State:", newState.Name)
+			end
+			self.state.isJumping = false
 		end
 	end))
 
 	return self
 end
 
-function StateClass.Get(self: WallstickCharacterState): Flags
-	return table.clone(self.flags)
+function StateClass.Get(self: WallstickCharacterState): State
+	return table.clone(self.state)
 end
 
 return StateClass

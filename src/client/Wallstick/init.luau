@@ -198,12 +198,16 @@ function WallstickClass:_updateState(newState: WallstickCharacterState)
 	CharacterHelper.setState(Players.LocalPlayer, newState)
 	self.state = newState
 
+	-- ensure gravity always affects the real character
+	self.real.rootPart.Anchored = false
+
 	if newState == WallstickCharacterState.Anchored then
 		for _, part in self.real.character:GetDescendants() do
 			if part:IsA("BasePart") then
 				part.Transparency = 1
 			end
 		end
+		-- fake model is controlled by AlignPosition so keep it unanchored
 		self.fake.rootPart.Anchored = false
 	elseif newState == WallstickCharacterState.Freefall then
 		self.freefallTick = os.clock()
@@ -213,6 +217,7 @@ function WallstickClass:_updateState(newState: WallstickCharacterState)
 				part.Transparency = if original ~= nil then original else 0
 			end
 		end
+		-- freeze fake model while real one falls
 		self.fake.rootPart.Anchored = true
 	end
 end
@@ -341,6 +346,7 @@ function WallstickClass._stepRenderCharacter(self: Wallstick, _dt: number)
 	if state == WallstickCharacterState.Freefall then
 		self.fake.rootPart.CFrame = self.real.rootPart.CFrame
 		self.fake.alignOrientation.Enabled = false
+		-- freefall skip further sync logic
 		return
 	elseif state == WallstickCharacterState.Rebounding then
 		self.fake.rootPart.AssemblyLinearVelocity = Vector3.new(0, 20, 0)
@@ -364,19 +370,21 @@ function WallstickClass._stepRenderCharacter(self: Wallstick, _dt: number)
 	else
 		self.fake.alignOrientation.Enabled = false
 	end
-end
-
-function WallstickClass._stepPhysics(self: Wallstick, _dt: number)
-	warn("[Wallstick] _stepPhysics running. Current state:", self.state)
 
 	if
 		self.state ~= WallstickCharacterState.Freefall
 		and self.fake.rootPart
 		and not self.fake.rootPart.Anchored
-		and self.fake.rootPart.Velocity.Y < -1
+		and self.fake.rootPart.AssemblyLinearVelocity.Magnitude > 1
+		and self.fake.rootPart.Position.Y < self.real.rootPart.Position.Y - 1
 	then
 		self:_updateState(WallstickCharacterState.Freefall)
 	end
+end
+
+function WallstickClass._stepPhysics(self: Wallstick, _dt: number)
+	warn("[Wallstick] _stepPhysics running. Current state:", self.state)
+
 	if self.fake.rootPart.Position.Y <= workspace.FallenPartsDestroyHeight then
 		self:Destroy()
 		return
@@ -387,12 +395,10 @@ function WallstickClass._stepPhysics(self: Wallstick, _dt: number)
 	if state == WallstickCharacterState.Freefall then
 		if os.clock() - self.freefallTick > 3 then
 			warn("[Wallstick] Freefall timeout - potential recovery")
-			self.freefallTick = os.clock()
 		end
 	end
 
 	if state == WallstickCharacterState.Freefall then
-		self.fake.rootPart.CFrame = self.real.rootPart.CFrame
 		self:_trySendReplication(false)
 		return
 	elseif state == WallstickCharacterState.Rebounding then

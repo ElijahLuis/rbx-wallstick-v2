@@ -47,6 +47,7 @@ You are assisting in the modernization of the **rbx-wallstick** module — a wal
 - **Notes**: Depends on `clientEntry.client.luau` for initialization
   - `_trySendReplication` now sends torso/head offsets for smoother remote animation
   - Uses `CharacterHelper.setState()` to toggle `WallstickCharacterState`
+  - Stores original transparency values to restore when exiting wallstick
 
 ### `src/server/init.server.luau`
 - **Purpose**: Server bootstrap — sets up collision groups, player script overrides, replication listener  
@@ -200,6 +201,10 @@ Ready for Codex reactivation and continued development.
 - `characterData.state` now stores per-player state
 - Wallstick logic reacts to state during `_stepRenderCharacter` and `_stepPhysics`
 - Unknown states default to Freefall
+
+### [2025-07-21] Transparency restore fix
+- Wallstick now records original BasePart transparency on initialization
+- `_updateState` restores these values when returning to Freefall
 
 ---
 

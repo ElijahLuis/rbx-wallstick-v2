@@ -131,6 +131,13 @@ function WallstickClass.new(options: Options): Wallstick
 
 	self.real = CharacterHelper.real(Players.LocalPlayer)
 	self.fake = CharacterHelper.fake(Players.LocalPlayer)
+	-- store original transparency for each part of the real character
+	self.originalTransparency = {}
+	for _, part in self.real.character:GetDescendants() do
+		if part:IsA("BasePart") then
+			self.originalTransparency[part] = part.Transparency
+		end
+	end
 
 	self.trove:Add(CharacterHelper.applyCollisionGroup(self.real.character, "WallstickNoCollision"))
 
@@ -199,7 +206,8 @@ function WallstickClass:_updateState(newState: WallstickCharacterState)
 	elseif newState == WallstickCharacterState.Freefall then
 		for _, part in self.real.character:GetDescendants() do
 			if part:IsA("BasePart") then
-				part.Transparency = 0
+				local original = self.originalTransparency[part]
+				part.Transparency = if original ~= nil then original else 0
 			end
 		end
 		self.fake.rootPart.Anchored = true

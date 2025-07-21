@@ -206,5 +206,9 @@ Ready for Codex reactivation and continued development.
 ### [2025-07-21] Debug state visibility
 - Heartbeat prints anchored/jumping flags when `DEBUG_STATE` is true
 
+### [2025-07-21] Jump state fix
+- Humanoid.Jumping now sets `isJumping` flag
+- Humanoid.StateChanged clears flag when leaving Jumping
+
 ---
 

@@ -46,8 +46,14 @@ function StateClass.new(trove: Trove.Trove, real: CharacterHelper.RealCharacter)
 		self.flags.isAnchored = real.rootPart.Anchored
 	end))
 
+	self.trove:Add(real.humanoid.Jumping:Connect(function()
+		self.flags.isJumping = true
+	end))
+
 	self.trove:Add(real.humanoid.StateChanged:Connect(function(_, newState)
-		self.flags.isJumping = newState == Enum.HumanoidStateType.Jumping
+		if newState ~= Enum.HumanoidStateType.Jumping then
+			self.flags.isJumping = false
+		end
 	end))
 
 	return self

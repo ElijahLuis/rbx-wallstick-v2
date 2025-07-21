@@ -46,6 +46,7 @@ You are assisting in the modernization of the **rbx-wallstick** module — a wal
 - **Hooks into**: CharacterHelper, Replication
 - **Notes**: Depends on `clientEntry.client.luau` for initialization
   - `_trySendReplication` now sends torso/head offsets for smoother remote animation
+  - Integrates `WallstickCharacterState` for anchored/jumping flags
 
 ### `src/server/init.server.luau`
 - **Purpose**: Server bootstrap — sets up collision groups, player script overrides, replication listener  
@@ -72,6 +73,12 @@ You are assisting in the modernization of the **rbx-wallstick** module — a wal
 - **Notes**: Uses TypedRemote for typed events
   - Now replicates head and torso offsets in addition to root part
   - Limb data throttled via `REPLICATE_DEBOUNCE_TIME`
+
+### `src/client/Wallstick/WallstickCharacterState.luau`
+- **Purpose**: Tracks anchored and jumping flags for the local character
+- **Dependencies**: CharacterHelper, Trove
+- **Design**: Read-only `Get()` method; updates via property events
+- **Notes**: Uses capitalized method name to match user spec
 
 ### `src/client/clientEntry.client.luau`
 - **Purpose**: Client bootstrap; spawns Wallstick on character spawn and performs raycast checks
@@ -191,6 +198,10 @@ Ready for Codex reactivation and continued development.
 ### [2025-07-21] Limb replication added
 - Replication module now broadcasts torso/head offsets
 - Wallstick `_trySendReplication` supplies limb data per player
+
+### [2025-07-21] Character state module scaffolding
+- Added `WallstickCharacterState.luau` to track anchored and jumping state
+- Hooked module into `WallstickClass.new`
 
 ---
 

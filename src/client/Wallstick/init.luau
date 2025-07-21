@@ -46,6 +46,7 @@ local Replication = require(script.Replication)
 local GravityCamera = require(script.GravityCamera)
 local RotationSpring = require(script.RotationSpring)
 local CharacterHelper = require(script.CharacterHelper)
+local WallstickCharacterState = require(script.WallstickCharacterState)
 
 local globalRenderTicket = 0
 
@@ -98,6 +99,7 @@ export type Wallstick = typeof(setmetatable(
 
 		real: CharacterHelper.RealCharacter,
 		fake: CharacterHelper.FakeCharacter,
+		state: WallstickCharacterState.WallstickCharacterState,
 	},
 	WallstickClass
 ))
@@ -127,6 +129,7 @@ function WallstickClass.new(options: Options): Wallstick
 
 	self.real = CharacterHelper.real(Players.LocalPlayer)
 	self.fake = CharacterHelper.fake(Players.LocalPlayer)
+	self.state = WallstickCharacterState.new(self.trove, self.real)
 
 	self.trove:Add(CharacterHelper.applyCollisionGroup(self.real.character, "WallstickNoCollision"))
 

@@ -19,7 +19,9 @@
 	- Uses `CameraUtils` for angle math, rotation type override, and input locking
 ]]
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserGameSettings = UserSettings():GetService("UserGameSettings")
+local CFrameUtils = require(ReplicatedStorage:WaitForChild("CFrameUtils"))
 
 local GravityState = {
 	transitionRate = 1,
@@ -33,29 +35,6 @@ local GravityState = {
 }
 
 -- Utility (math support)
-local function fromToRotation(from: Vector3, to: Vector3, backupUnitAxis: Vector3?)
-	local dot = from:Dot(to)
-	if dot < -0.99999 then
-		return if backupUnitAxis
-			then CFrame.fromAxisAngle(backupUnitAxis, math.pi)
-			else CFrame.fromRotationBetweenVectors(from, to)
-	end
-	local qv = from:Cross(to)
-	local qw = math.sqrt(from:Dot(from) * to:Dot(to)) + dot
-	return CFrame.new(0, 0, 0, qv.X, qv.Y, qv.Z, qw)
-end
-
-local function swingTwist(inputCF: CFrame, relativeUnitAxis: Vector3)
-	local axis, theta = inputCF:ToAxisAngle()
-	local w, v = math.cos(theta / 2), math.sin(theta / 2) * axis
-
-	local proj = v:Dot(relativeUnitAxis) * relativeUnitAxis
-	local twist = CFrame.new(0, 0, 0, proj.X, proj.Y, proj.Z, w)
-
-	local swing = inputCF * twist:Inverse()
-
-	return swing, twist
-end
 
 -- Gravity core (internal logic)
 local function calculateUpStep(_dt: number)
@@ -64,7 +43,7 @@ local function calculateUpStep(_dt: number)
 	end
 	local axis = workspace.CurrentCamera.CFrame.RightVector
 
-	local sphericalArc = fromToRotation(GravityState.upVector, GravityState.targetUpVector, axis)
+	local sphericalArc = CFrameUtils.fromToRotation(GravityState.upVector, GravityState.targetUpVector, axis)
 	local transitionCF = CFrame.new():Lerp(sphericalArc, GravityState.transitionRate)
 
 	GravityState.upVector = transitionCF * GravityState.upVector
@@ -83,7 +62,7 @@ local function calculateSpinStep(_dt: number, inVehicle: boolean)
 		local delta = prevRotation:ToObjectSpace(rotation)
 		local spinAxis = delta:VectorToObjectSpace(prevRotation:VectorToObjectSpace(GravityState.upVector))
 
-		local _swing, twist = swingTwist(delta, spinAxis)
+		local _swing, twist = CFrameUtils.swingTwist(delta, spinAxis)
 		local deltaAxis, _deltaTheta = delta:ToAxisAngle()
 		local _twistAxis, twistTheta = twist:ToAxisAngle()
 

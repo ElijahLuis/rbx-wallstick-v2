@@ -40,6 +40,7 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local SharedPackages = ReplicatedStorage.SharedPackages
+local CFrameUtils = require(ReplicatedStorage:WaitForChild("CFrameUtils"))
 local Trove = require(SharedPackages.Trove)
 
 local Replication = require(script.Replication)
@@ -178,23 +179,10 @@ function WallstickClass.new(options: Options): Wallstick
 
 	return self
 end
-
 -- Private --
 
-local function fromToRotation(from: Vector3, to: Vector3, backupUnitAxis: Vector3?)
-	local dot = from:Dot(to)
-	if dot < -0.99999 then
-		return if backupUnitAxis
-			then CFrame.fromAxisAngle(backupUnitAxis, math.pi)
-			else CFrame.fromRotationBetweenVectors(from, to)
-	end
-	local qv = from:Cross(to)
-	local qw = math.sqrt(from:Dot(from) * to:Dot(to)) + dot
-	return CFrame.new(0, 0, 0, qv.X, qv.Y, qv.Z, qw)
-end
-
 function WallstickClass._getOriginCFrame(self: Wallstick)
-	return self.options.origin * fromToRotation(self.normal, Vector3.yAxis, Vector3.xAxis)
+	return self.options.origin * CFrameUtils.fromToRotation(self.normal, Vector3.yAxis, Vector3.xAxis)
 end
 
 function WallstickClass._getCalculatedRealRootCFrame(self: Wallstick)
@@ -361,7 +349,7 @@ function WallstickClass.set(self: Wallstick, part: BasePart, normal: Vector3, te
 
 	local partCF = part.CFrame
 	local newWorldNormal = partCF:VectorToWorldSpace(normal)
-	local worldGoalUpCFrame = fromToRotation(worldUpCFrame.YVector, newWorldNormal, worldUpCFrame.XVector)
+	local worldGoalUpCFrame = CFrameUtils.fromToRotation(worldUpCFrame.YVector, newWorldNormal, worldUpCFrame.XVector)
 		* worldUpCFrame
 
 	self.cameraUpSpring:setGoal(partCF:ToObjectSpace(worldGoalUpCFrame))
@@ -377,7 +365,7 @@ function WallstickClass.set(self: Wallstick, part: BasePart, normal: Vector3, te
 
 	local originCF = self:_getOriginCFrame()
 	local targetCF = originCF * self.part.CFrame:ToObjectSpace(teleportCF or self.real.rootPart.CFrame)
-	local sphericalArc = fromToRotation(targetCF.YVector, Vector3.yAxis, targetCF.XVector)
+	local sphericalArc = CFrameUtils.fromToRotation(targetCF.YVector, Vector3.yAxis, targetCF.XVector)
 	local resultCF = (sphericalArc * targetCF.Rotation) + targetCF.Position
 
 	local fakeRoot = self.fake.rootPart
@@ -409,7 +397,8 @@ function WallstickClass.setAndPivot(self: Wallstick, part: BasePart, normal: Vec
 	local heightAdjust = (realRootCF.Position - position):Dot(worldNormal)
 
 	local floorRootCF = realRootCF * CFrame.new(0, -heightAdjust, 0)
-	local newRotation = fromToRotation(floorRootCF.YVector, worldNormal, floorRootCF.XVector) * floorRootCF.Rotation
+	local newRotation = CFrameUtils.fromToRotation(floorRootCF.YVector, worldNormal, floorRootCF.XVector)
+		* floorRootCF.Rotation
 	local teleportCF = CFrame.new(position) * newRotation * CFrame.new(0, heightAdjust, 0)
 
 	return self:set(part, normal, teleportCF)
@@ -421,7 +410,8 @@ function WallstickClass.setAndTeleport(self: Wallstick, part: BasePart, normal: 
 	local heightAdjust = self.real.rootPart.Size.Y / 2 + self.real.humanoid.HipHeight
 
 	local floorRootCF = realRootCF * CFrame.new(0, -heightAdjust, 0)
-	local newRotation = fromToRotation(floorRootCF.YVector, worldNormal, floorRootCF.XVector) * floorRootCF.Rotation
+	local newRotation = CFrameUtils.fromToRotation(floorRootCF.YVector, worldNormal, floorRootCF.XVector)
+		* floorRootCF.Rotation
 	local teleportCF = CFrame.new(position) * newRotation * CFrame.new(0, heightAdjust, 0)
 
 	return self:set(part, normal, teleportCF)

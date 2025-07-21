@@ -203,5 +203,8 @@ Ready for Codex reactivation and continued development.
 - Added `WallstickCharacterState.luau` to track anchored and jumping state
 - Hooked module into `WallstickClass.new`
 
+### [2025-07-21] Debug state visibility
+- Heartbeat prints anchored/jumping flags when `DEBUG_STATE` is true
+
 ---
 

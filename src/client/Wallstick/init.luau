@@ -49,6 +49,7 @@ local CharacterHelper = require(script.CharacterHelper)
 local WallstickCharacterState = require(script.WallstickCharacterState)
 
 local globalRenderTicket = 0
+local DEBUG_STATE = true
 
 local CLASS_NAMES_TO_CONVERT = {
 	["Seat"] = { ClassName = "Part" },
@@ -99,7 +100,7 @@ export type Wallstick = typeof(setmetatable(
 
 		real: CharacterHelper.RealCharacter,
 		fake: CharacterHelper.FakeCharacter,
-		state: WallstickCharacterState.WallstickCharacterState,
+		stateTracker: WallstickCharacterState.WallstickCharacterState,
 	},
 	WallstickClass
 ))
@@ -129,7 +130,16 @@ function WallstickClass.new(options: Options): Wallstick
 
 	self.real = CharacterHelper.real(Players.LocalPlayer)
 	self.fake = CharacterHelper.fake(Players.LocalPlayer)
-	self.state = WallstickCharacterState.new(self.trove, self.real)
+	self.stateTracker = WallstickCharacterState.new(self.trove, self.real)
+
+	if DEBUG_STATE then
+		self.trove:Add(RunService.Heartbeat:Connect(function()
+			if self.stateTracker then
+				local state = self.stateTracker:Get()
+				print("[Wallstick State] Anchored:", state.isAnchored, "| Jumping:", state.isJumping)
+			end
+		end))
+	end
 
 	self.trove:Add(CharacterHelper.applyCollisionGroup(self.real.character, "WallstickNoCollision"))
 

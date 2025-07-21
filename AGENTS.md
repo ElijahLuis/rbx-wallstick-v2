@@ -215,5 +215,10 @@ Ready for Codex reactivation and continued development.
 - Prints jump start and end with new state name
 - `Wallstick` confirms state tracker initialization
 
+### [2025-07-21] Jump detection via StateChanged
+- Removed Humanoid.Jumping listener due to EvaluateStateMachine disabled
+- `isJumping` now toggles based solely on `StateChanged`
+- Logs new humanoid state for debugging
+
 ---
 

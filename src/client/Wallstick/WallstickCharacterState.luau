@@ -51,17 +51,15 @@ function StateClass.new(trove: Trove.Trove, real: CharacterHelper.RealCharacter)
 		print("[StateTracker] Anchored changed:", real.rootPart.Anchored)
 	end))
 
-	self.trove:Add(real.humanoid.Jumping:Connect(function()
-		self.state.isJumping = true
-		print("[StateTracker] Jump START")
-	end))
-
 	self.trove:Add(real.humanoid.StateChanged:Connect(function(_, newState)
-		if newState ~= Enum.HumanoidStateType.Jumping then
-			if self.state.isJumping then
-				print("[StateTracker] Jump END \226\134\146 New State:", newState.Name)
-			end
-			self.state.isJumping = false
+		print("[Humanoid] New State:", newState.Name)
+
+		self.state.isJumping = newState == Enum.HumanoidStateType.Jumping
+
+		if self.state.isJumping then
+			print("[StateTracker] Jump START")
+		else
+			print("[StateTracker] Jump END → New State:", newState.Name)
 		end
 	end))
 

@@ -9,6 +9,12 @@ sourcemap.json
 *.rbxl.lock
 wally.lock
 
+# Shell scripts
+reapr.sh
+uppr.sh
+preppr
+preppr.sh
+
 # Temp/backup files
 *.log
 *.tmp
@@ -26,9 +32,6 @@ desktop.ini
 
 # VS Code
 .vscode/
-devflow
-devflow.ps1
-devflow.sh
 
 
 

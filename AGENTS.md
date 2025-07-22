@@ -135,7 +135,7 @@ Codex, always reference files in this order:
 ## 💡 Future Codex To-Do
 
 - [ ] Review: Are fake characters needed for local-only physics, or could we replicate real characters directly?  
-- [ ] Finalize GravityCameraModifier.luau documentation  
+- [x] Finalize GravityCameraModifier.luau documentation
 - [ ] Improve replication fidelity across all character parts, not just HumanoidRootPart  
 - [ ] Ensure compatibility with both R6 and R15 rigs  
 - [ ] Map and fix desync bugs between real/fake characters  

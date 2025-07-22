@@ -55,3 +55,21 @@ Refactored and documented by [Nejinumanuma](https://github.com/ElijahLuis).
 - `selene.toml` ~ selene config
 - `stylua.toml` ~ stylua config
 - `wally.toml` ~ wally dependency config
+
+## Setup
+
+1. Install the required packages using [Wally](https://github.com/UpliftGames/wally):
+
+   ```bash
+   wally install
+   ```
+
+2. Build your development place with [Rojo](https://rojo.space):
+
+   ```bash
+   rojo build default.project.json -o "game.rbxlx"
+   ```
+
+3. Add `src/server/init.server.luau` to `ServerScriptService` and ensure the `src/server/PlayerScripts` folder is copied alongside your other player scripts. The included `init.luau` clones Roblox's PlayerModule, injects `GravityCameraModifier`, and replaces the default module at runtime.
+
+See the [Roblox Creator Hub](https://create.roblox.com/docs/reference/engine/classes/PlayerModule) for the latest documentation on extending PlayerModule.

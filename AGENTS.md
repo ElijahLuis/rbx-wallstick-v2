@@ -142,59 +142,9 @@ Codex, always reference files in this order:
 
 ---
 
-## 📓 Logs:
+## 📓 Logs
 
-Use this section to track meaningful discoveries, design choices, or bugs/fixes Codex encounters. Timestamp when possible. Entries should be brief but specific.
-
----
-
-### [2025-07-20] Runtime errors fully resolved!
-
-**Issues Fixed:**
-
-- **GravityCameraModifier**
-  - `fromToRotation` and `swingTwist` were nil at runtime
-  - 🔧 Moved both above their usage in `calculateUpStep` and `calculateSpinStep`
-
-- **TransparencyController**
-  - `self.lastTransparency` was nil → caused arithmetic error
-    - 🔧 Fallback added: `local last = self.lastTransparency or 0`
-  - `Update(dt)` was being called with `nil dt`
-    - 🔧 Fixed call in `PlayerScriptsLoader` to pass `dt` correctly
-
-**Status:**  
-All runtime crashes cleared. Gravity + camera logic stable.  
-Ready for Codex reactivation and continued development.
-
-### [2025-07-20] GravityCameraModifier early runtime crashes resolved
-
-- **Symptom**: Multiple runtime errors from `calculateUpStep()` and `calculateSpinStep()`
-  - Line 42: `attempt to call a nil value` → `fromToRotation` was undefined at call time
-  - Line 74: `attempt to call a nil value` → `swingTwist` was also undefined at call time
-
-- **Cause**: Lua requires local functions to be declared *before* they are used.  
-  Both utility functions were placed *below* the functions that depended on them.
-
-- **Fixes**:
-  - Moved `fromToRotation()` above `calculateUpStep()`
-  - Moved `swingTwist()` above both gravity core functions
-
-- **Outcome**: GravityCameraModifier now initializes cleanly across environments.  
-  Wallstick and camera behavior stable at runtime. ✅
-
-### [2025-07-20] Initial code scan documentation
-- Reviewed client and server modules starting from `src/client/Wallstick/init.luau`
-- Documented responsibilities and dependencies for each major file in File Purposes
-- Observed consistent use of custom PlayerModule wrappers and typed remotes
-
-### [2025-07-20] Dry-run structure verification
-- Added File Purpose entry for `src/server/PlayerScripts/Animate/PlayEmote.model.json`
-- Assuming all character rigs include `RootAttachment`; unknown behavior otherwise
-- Possible refactor opportunity: unify replication debounce timing
-
-### [2025-07-21] Limb replication added
-- Replication module now broadcasts torso/head offsets
-- Wallstick `_trySendReplication` supplies limb data per player
+Historical solutions have moved to [logs/Changelog.md](logs/Changelog.md).
 
 ---
 

@@ -1,22 +1,33 @@
 --!strict
 --[[
-	@file GravityCameraModifier.luau
-	@within PlayerScripts
-	@function cameraObject:Update
-	@param dt number
+@file GravityCameraModifier.luau
+@within PlayerScripts
+@function cameraObject:Update
+@param dt number
 
-	Modifies the Roblox PlayerModule camera to support spherical gravity environments.
+Modifier that patches Roblox's PlayerModule camera to support spherical gravity.
+Add this module to a cloned PlayerModule with `PlayerModule.Modifiers.add()` before it is parented to PlayerScripts. See Roblox Creator Hub for details on extending PlayerModule.
 
-	Responsibilities:
-	- Overrides core camera modules (e.g., BaseCamera, Poppercam, VehicleCamera) to align with custom up vectors
-	- Applies spherical gravity by calculating interpolated up vectors and twist rotation
-	- Ensures stable camera orientation on curved surfaces (e.g., planets)
-	- Adds helper functions for tracking and setting gravity direction, rotation rate, and spin reference part
+Integration overview:
+1. Clone the default PlayerModule (2024+) and require this script as a modifier. `src/server/PlayerScripts/init.luau` shows how to inject it using `PlayerModulePackage.replace`.
+2. After injection, the PlayerModule exposes extra methods used by `GravityCamera`:
+   - `GetUpVector()` / `GetTargetUpVector()`
+   - `SetTargetUpVector(vector3)`
+   - `GetSpinPart()` / `SetSpinPart(basePart)`
+   - `GetTransitionRate()` / `SetTransitionRate(number)`
+   - `GetRotationType()`
+These mirror the API described on the Creator Hub.
 
-	Dependencies:
-	- Assumes standard PlayerModule structure is intact
-	- Overrides behavior in: CameraModule, BaseCamera, Poppercam, ZoomController, VehicleCameraCore
-	- Uses `CameraUtils` for angle math, rotation type override, and input locking
+Responsibilities:
+- Overrides core camera modules (BaseCamera, Poppercam, VehicleCamera) to align with custom up vectors
+- Applies spherical gravity by interpolating up vectors and twist rotation
+- Maintains stable orientation on curved surfaces (e.g., planets)
+- Provides helpers for tracking and setting gravity direction, transition rate, and spin reference part
+
+Dependencies:
+- Assumes the standard PlayerModule layout is intact
+- Overrides behavior in: CameraModule, BaseCamera, Poppercam, ZoomController, VehicleCameraCore
+- Uses `CameraUtils` for angle math, rotation type override, and input locking. Refer to the Roblox Creator Hub for the latest PlayerModule API
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

@@ -87,8 +87,8 @@ function GravityVisualizer:_update()
 	self._targetArrow.CFrame = CFrame.lookAt(origin, origin + targetVector)
 	self._targetArrow.Length = LENGTH
 
-	local angle = math.deg(math.acos(math.clamp(upVector:Dot(targetVector), -1, 1)))
-	self._label.Text = string.format("|u| %.2f\n\u2220 %.2f", upVector.Magnitude, angle)
+       local angle = math.deg(math.acos(math.clamp(upVector:Dot(targetVector), -1, 1)))
+       self._label.Text = string.format("|u| %.2f\n∠ %.2f", upVector.Magnitude, angle)
 end
 
 function GravityVisualizer:Destroy()

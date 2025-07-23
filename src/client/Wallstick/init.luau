@@ -3,36 +3,33 @@
 	@class Wallstick
 	@module Wallstick
 
-	Primary module that powers the custom wall-sticking system. This class manages dual character control,
-	camera reorientation, collision replication, and custom gravity logic.
+       Handles wall-walking by syncing a real and fake character,
+       reorienting camera and physics, and replicating offsets as needed.
 
-	Core Responsibilities:
-	- Creates a synced real/fake character pair for animation + physics separation
-	- Reorients camera and character relative to any surface using AlignPosition / AlignOrientation
-	- Caches surrounding parts as invisible collision proxies for custom physics
-	- Smoothly transitions camera tilt using a rotational spring system
-	- Handles surface switching, teleporting, and stick orientation logic
-	- Optionally replicates character offset for multiplayer synchronization
+       Responsibilities:
+       - Spawn a real/fake character pair for physics isolation
+       - Align character and camera to any surface via AlignPosition/AlignOrientation
+       - Cache nearby parts as invisible colliders
+       - Tilt the camera with a rotation spring
+       - Manage surface changes and teleportation
+       - Optionally replicate offsets for multiplayer
 
-	Depends On:
-	- GravityCamera: Manages camera up vector and spin anchor
-	- CharacterHelper: Packages character models for real/fake sync
-	- RotationSpring: Smooths camera tilt transitions
-	- Replication: Sends position offset data for networking
-	- Trove: Manages resource cleanup
+       Uses:
+       - GravityCamera for up vector and spin
+       - CharacterHelper for character models
+       - RotationSpring for tilt smoothing
+       - Replication for networking
+       - Trove for cleanup
 
-	Usage:
-	local wallstick = Wallstick.new({
-		parent = workspace,
-		origin = CFrame.identity,
-		retainWorldVelocity = true,
-		camera = {
-			tilt = true,
-			spin = true,
-		},
-	})
+       Example:
+       local wallstick = Wallstick.new({
+               parent = workspace,
+               origin = CFrame.identity,
+               retainWorldVelocity = true,
+               camera = { tilt = true, spin = true },
+       })
 
-	wallstick:set(surfacePart, surfaceNormal)
+       wallstick:set(surfacePart, surfaceNormal)
 ]]
 
 local Players = game:GetService("Players")
@@ -61,13 +58,13 @@ local CLASS_NAMES_TO_CONVERT = {
 	},
 }
 
--- Class --
+-- Class
 
 local WallstickClass = {}
 WallstickClass.__index = WallstickClass
 WallstickClass.ClassName = "Wallstick"
 
--- Types --
+-- Types
 
 export type Options = {
 	parent: Instance,
@@ -103,7 +100,7 @@ export type Wallstick = typeof(setmetatable(
 	WallstickClass
 ))
 
--- Constructors --
+-- Constructors
 
 function WallstickClass.new(options: Options): Wallstick
 	local self = setmetatable({}, WallstickClass) :: Wallstick
@@ -179,7 +176,7 @@ function WallstickClass.new(options: Options): Wallstick
 
 	return self
 end
--- Private --
+-- Private
 
 function WallstickClass._getOriginCFrame(self: Wallstick)
 	return self.options.origin * CFrameUtils.fromToRotation(self.normal, Vector3.yAxis, Vector3.xAxis)
@@ -321,7 +318,7 @@ function WallstickClass._stepPhysics(self: Wallstick, _dt: number)
 	self:_trySendReplication(false)
 end
 
--- Public --
+-- Public
 
 function WallstickClass.getPart(self: Wallstick)
 	return self.part

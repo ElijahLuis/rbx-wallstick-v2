@@ -15,15 +15,16 @@ Modernized, and maintained by [Nejinumanuma](https://github.com/ElijahLuis).
 - Rojo-compatible, clean dev structure with lint and formatting tooling
 
 ## Project Tree Map
-Refactored and documented by [Nejinumanuma](https://github.com/ElijahLuis).
 
 ### `demo/`
 - `playground.rbxl` ~ custom test playground
+
 ### `lune/`
 - `wally-install.luau`~ wally setup utility
 
 ### `src/client/`
 - `clientEntry.client.luau` ~ entry point: binds wallstick on character spawn
+
 #### `Wallstick/`
 - `CharacterHelper.luau` ~ builds real and fake character models for physics sync
 - `GravityCamera.luau` ~ handles surface-relative camera orientation
@@ -33,11 +34,13 @@ Refactored and documented by [Nejinumanuma](https://github.com/ElijahLuis).
 
 ### `src/server/`
 - `init.server.luau` ~ creates collision groups and server-side logic
+
 #### `PlayerScripts/`
 - `Animate/` 
     - `Controller.luau` ~ syncs character animations and controls playback
     - `init.client.luau` ~ entry for Animate.Controller
     - `PlayEmote.model.json` ~ used by Controller.luau to allow emote playback
+
 - `CharacterSounds/`
     - `Controller.luau` ~ manages 3D character audio
     - `init.client.luau` ~ entry for CharacterSounds.Controller
@@ -58,7 +61,9 @@ Refactored and documented by [Nejinumanuma](https://github.com/ElijahLuis).
 
 ## Setup
 
-1. Install the required packages using [Wally](https://github.com/UpliftGames/wally):
+1. Install the required packages:
+- [Rojo](https://rojo.space/docs/v7/getting-started/installation/)
+- [Wally](https://github.com/UpliftGames/wally):
 
    ```bash
    wally install

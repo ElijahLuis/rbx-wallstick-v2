@@ -83,6 +83,7 @@ You are assisting in the modernization of the **rbx-wallstick** module — a wal
 
 ### `src/client/Wallstick/Debug/DebugDraw.luau`
 - **Purpose**: Utility for spawning ArrowHandleAdornments with ZIndex and TTL support
+- **Notes**: `arrow(adorneePart, localCFrame)` requires a BasePart and attaches to the nearest planet when using `arrowFromVector`
 
 ### `src/client/clientEntry.client.luau`
 - **Purpose**: Client bootstrap; spawns Wallstick on character spawn and performs raycast checks

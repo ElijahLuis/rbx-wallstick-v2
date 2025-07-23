@@ -15,15 +15,15 @@ local nextZIndex = 0
 local DebugDraw = {}
 
 --[[
-    Draws an arrow at the given world CFrame.
-    @param parent Instance to parent the adornment to (e.g. workspace.CurrentCamera)
-    @param cframe World-space CFrame for the arrow's origin and direction
+    Draws an arrow relative to the given adornee part.
+    @param adorneePart BasePart that the adornment attaches to
+    @param localCFrame CFrame relative to the part for the arrow's origin and direction
     @param color Color3 of the arrow
     @param length Optional length; defaults to 1
     @param timeToLive Optional seconds before automatic removal
     @return ArrowHandleAdornment?
 ]]
-function DebugDraw.arrow(parent: Instance, cframe: CFrame, color: Color3, length: number?, timeToLive: number?)
+function DebugDraw.arrow(adorneePart: BasePart, localCFrame: CFrame, color: Color3, length: number?, timeToLive: number?)
     if not RunService:IsStudio() then
         return nil
     end
@@ -38,11 +38,16 @@ function DebugDraw.arrow(parent: Instance, cframe: CFrame, color: Color3, length
     arrow.Length = length or 1
     arrow.ZIndex = index
 
+    local offsetVec = Vector3.zero
     local camera = Workspace.CurrentCamera
-    local offset = camera and camera.CFrame.RightVector * OFFSET_STEP * index or Vector3.zero
-    arrow.CFrame = cframe + offset
+    if camera then
+        local worldOffset = camera.CFrame.RightVector * OFFSET_STEP * index
+        offsetVec = adorneePart.CFrame:VectorToObjectSpace(worldOffset)
+    end
 
-    arrow.Parent = parent
+    arrow.CFrame = localCFrame + offsetVec
+    arrow.Adornee = adorneePart
+    arrow.Parent = adorneePart
 
     if timeToLive then
         Debris:AddItem(arrow, timeToLive)
@@ -53,6 +58,7 @@ end
 
 --[[
     Draws an arrow from an origin and direction vector.
+    Automatically attaches to the closest planet in `workspace.Planets`.
     @param origin World position
     @param direction Vector pointing toward arrow end
     @param color Color of the arrow
@@ -64,9 +70,30 @@ function DebugDraw.arrowFromVector(origin: Vector3, direction: Vector3, color: C
     if direction.Magnitude == 0 then
         return nil
     end
+
+    local planetsFolder = Workspace:FindFirstChild("Planets")
+    local closestPart: BasePart? = nil
+    local closestDist = math.huge
+    if planetsFolder then
+        for _, obj in ipairs(planetsFolder:GetChildren()) do
+            if obj:IsA("BasePart") then
+                local dist = (obj.Position - origin).Magnitude
+                if dist < closestDist then
+                    closestDist = dist
+                    closestPart = obj
+                end
+            end
+        end
+    end
+    if not closestPart then
+        return nil
+    end
+
     local len = direction.Magnitude * (scale or 1)
-    local cf = CFrame.lookAt(origin, origin + direction)
-    return DebugDraw.arrow(Workspace.CurrentCamera, cf, color, len, timeToLive)
+    local worldCF = CFrame.lookAt(origin, origin + direction)
+    local localCF = closestPart.CFrame:ToObjectSpace(worldCF)
+
+    return DebugDraw.arrow(closestPart, localCF, color, len, timeToLive)
 end
 
 return DebugDraw

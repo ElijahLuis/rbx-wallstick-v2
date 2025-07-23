@@ -35,18 +35,16 @@ function GravityVisualizer.new()
 	local root = character:WaitForChild("HumanoidRootPart") :: BasePart
 	self._root = root
 
-       local currentArrow = DebugDraw.arrow(workspace.CurrentCamera, CFrame.identity, Color3.fromRGB(0, 255, 0), LENGTH)
+       local currentArrow = DebugDraw.arrow(root, CFrame.identity, Color3.fromRGB(0, 255, 0), LENGTH)
        if currentArrow then
                currentArrow.Name = "CurrentUpVector"
-               currentArrow.Adornee = root
                self._trove:Add(currentArrow)
                self._currentArrow = currentArrow
        end
 
-       local targetArrow = DebugDraw.arrow(workspace.CurrentCamera, CFrame.identity, Color3.fromRGB(255, 0, 0), LENGTH)
+       local targetArrow = DebugDraw.arrow(root, CFrame.identity, Color3.fromRGB(255, 0, 0), LENGTH)
        if targetArrow then
                targetArrow.Name = "TargetUpVector"
-               targetArrow.Adornee = root
                self._trove:Add(targetArrow)
                self._targetArrow = targetArrow
        end
@@ -81,11 +79,13 @@ function GravityVisualizer:_update()
 	local upVector = GravityCamera.getUpVector()
 	local targetVector = GravityCamera.getTargetUpVector()
 
-	self._currentArrow.CFrame = CFrame.lookAt(origin, origin + upVector)
-	self._currentArrow.Length = LENGTH
+        local worldCurrentCF = CFrame.lookAt(origin, origin + upVector)
+        self._currentArrow.CFrame = self._root.CFrame:ToObjectSpace(worldCurrentCF)
+        self._currentArrow.Length = LENGTH
 
-	self._targetArrow.CFrame = CFrame.lookAt(origin, origin + targetVector)
-	self._targetArrow.Length = LENGTH
+        local worldTargetCF = CFrame.lookAt(origin, origin + targetVector)
+        self._targetArrow.CFrame = self._root.CFrame:ToObjectSpace(worldTargetCF)
+        self._targetArrow.Length = LENGTH
 
        local angle = math.deg(math.acos(math.clamp(upVector:Dot(targetVector), -1, 1)))
        self._label.Text = string.format("|u| %.2f\n∠ %.2f", upVector.Magnitude, angle)

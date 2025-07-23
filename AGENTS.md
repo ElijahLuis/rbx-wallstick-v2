@@ -77,6 +77,13 @@ You are assisting in the modernization of the **rbx-wallstick** module — a wal
 - **Purpose**: Shared math helpers providing `fromToRotation()` and `swingTwist()`
   for quaternion conversions used by Wallstick and GravityCameraModifier
 
+### `src/client/Wallstick/Debug/GravityVisualizer.luau`
+- **Purpose**: Studio-only helper drawing arrows for current and target up vectors
+- **Notes**: Requires `_G.WALLSTICK_DEBUG` and does not replicate adornments
+
+### `src/client/Wallstick/Debug/DebugDraw.luau`
+- **Purpose**: Utility for spawning ArrowHandleAdornments with ZIndex and TTL support
+
 ### `src/client/clientEntry.client.luau`
 - **Purpose**: Client bootstrap; spawns Wallstick on character spawn and performs raycast checks
 ### `src/server/PlayerScripts/init.luau`

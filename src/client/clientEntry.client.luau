@@ -27,6 +27,7 @@ local SharedPackages = ReplicatedStorage.SharedPackages
 local RaycastHelper = require(SharedPackages.RaycastHelper)
 local WallstickClass = require(ReplicatedStorage.Wallstick)
 local Replication = require(ReplicatedStorage.Wallstick.Replication)
+local GravityVisualizer = require(ReplicatedStorage.Wallstick.Debug.GravityVisualizer)
 
 -- Excludes parts belonging to player's limbs and accessories
 local function ignoreCharacterParts(result: RaycastResult): boolean
@@ -111,3 +112,6 @@ end
 localPlayer.CharacterAdded:Connect(onCharacterAdded)
 
 Replication.listenClient()
+
+-- Initialize Studio-only gravity visualizer
+local _debugVisualizer = GravityVisualizer.new()

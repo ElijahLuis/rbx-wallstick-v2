@@ -55,21 +55,20 @@ end
 
 function GravityCamera.getMoveVector(cameraCF: CFrame, inputMove: Vector3?): Vector3
 	local moveVector = inputMove or controlModuleObject:GetMoveVector() :: Vector3
-
 	local up = cameraCF.UpVector
 
-	-- Get camera heading vector by removing pitch (flatten LookVector)
-	local lookFlat = Vector3.new(cameraCF.LookVector.X, 0, cameraCF.LookVector.Z)
-	if lookFlat.Magnitude < 0.01 then
-		-- Edge case: camera is pointing straight up/down → default to a safe forward
-		lookFlat = Vector3.zAxis
+	-- Get yaw-only LookVector by flattening onto XZ and projecting onto gravity plane
+	local flatLook = Vector3.new(cameraCF.LookVector.X, 0, cameraCF.LookVector.Z)
+	if flatLook.Magnitude < 1e-4 then
+		flatLook = Vector3.zAxis -- Fallback for looking straight up/down
 	end
 
-	-- Build a custom surface-relative frame
-	local forward = (lookFlat - up * lookFlat:Dot(up)).Unit
-	local right = up:Cross(forward)
+	-- Project onto gravity-defined surface plane
+	local forward = (flatLook - up * flatLook:Dot(up)).Unit
+	local right = forward:Cross(up) -- Correct handedness for A/D
 
-	local moveDirection = right * moveVector.X + forward * moveVector.Z
+	-- Roblox input: Z+ is back (S), Z– is forward (W), so we negate forward
+	local moveDirection = right * moveVector.X - forward * moveVector.Z
 
 	return if moveDirection.Magnitude > 0 then moveDirection.Unit * moveVector.Magnitude else Vector3.zero
 end

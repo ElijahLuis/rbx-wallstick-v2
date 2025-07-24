@@ -8,22 +8,25 @@
 
 local CFrameUtils = {}
 
+local EPSILON = 1e-6
+
 --[=[
-    Calculates the rotation CFrame that aligns one unit vector with another.
-    Falls back to CFrame.fromAxisAngle when vectors are opposite to avoid
-    gimbal lock. Inspired by the "Aligning CFrames" article on the
-    Roblox Creator Hub.
+    Calculates the rotation CFrame that aligns `from` with `to` using
+    `CFrame.fromRotationBetweenVectors`. When the vectors are opposite,
+    a `backupUnitAxis` may be supplied to specify the spin direction.
+    Follows the recommendations from the Roblox Creator Hub.
 ]=]
 function CFrameUtils.fromToRotation(from: Vector3, to: Vector3, backupUnitAxis: Vector3?): CFrame
-	local dot = from:Dot(to)
-	if dot < -0.99999 then
-		return if backupUnitAxis
-			then CFrame.fromAxisAngle(backupUnitAxis, math.pi)
-			else CFrame.fromRotationBetweenVectors(from, to)
+	if from.Magnitude < EPSILON or to.Magnitude < EPSILON then
+		return CFrame.identity
 	end
-	local qv = from:Cross(to)
-	local qw = math.sqrt(from:Dot(from) * to:Dot(to)) + dot
-	return CFrame.new(0, 0, 0, qv.X, qv.Y, qv.Z, qw)
+
+	local dot = from:Dot(to)
+	if dot < -0.99999 and backupUnitAxis then
+		return CFrame.fromAxisAngle(backupUnitAxis, math.pi)
+	end
+
+	return CFrame.fromRotationBetweenVectors(from, to)
 end
 
 --[=[

@@ -58,13 +58,18 @@ function GravityCamera.getMoveVector(cameraCF: CFrame, inputMove: Vector3?): Vec
 
 	local up = cameraCF.UpVector
 
-	-- Get the camera's flat (yaw-only) rotation
-	local flatCamera = CFrame.lookAt(Vector3.zero, Vector3.new(cameraCF.LookVector.X, 0, cameraCF.LookVector.Z))
-	local yawForward = (flatCamera.LookVector - up * flatCamera.LookVector:Dot(up)).Unit
-	local yawRight = yawForward:Cross(up)
+	-- Get camera heading vector by removing pitch (flatten LookVector)
+	local lookFlat = Vector3.new(cameraCF.LookVector.X, 0, cameraCF.LookVector.Z)
+	if lookFlat.Magnitude < 0.01 then
+		-- Edge case: camera is pointing straight up/down → default to a safe forward
+		lookFlat = Vector3.zAxis
+	end
 
-	-- Use yaw-aligned movement basis
-	local moveDirection = yawRight * moveVector.X - yawForward * moveVector.Z
+	-- Build a custom surface-relative frame
+	local forward = (lookFlat - up * lookFlat:Dot(up)).Unit
+	local right = up:Cross(forward)
+
+	local moveDirection = right * moveVector.X + forward * moveVector.Z
 
 	return if moveDirection.Magnitude > 0 then moveDirection.Unit * moveVector.Magnitude else Vector3.zero
 end

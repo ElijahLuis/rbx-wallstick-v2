@@ -57,14 +57,16 @@ end
 function GravityCamera.getMoveVector(cameraCF: CFrame, inputMove: Vector3?): Vector3
        local moveVector = inputMove or controlModuleObject:GetMoveVector() :: Vector3
 
-       -- Project camera look vector onto the plane defined by the camera's up vector
-       local forward = (cameraCF.LookVector - cameraCF.UpVector * cameraCF.LookVector:Dot(cameraCF.UpVector)).Unit
+       -- Project LookVector onto the UpVector plane
+       local rawForward = cameraCF.LookVector - cameraCF.UpVector * cameraCF.LookVector:Dot(cameraCF.UpVector)
 
-       -- Right vector is orthogonal to both forward and up
+       -- Fallback if projection is too small (e.g., looking straight up/down)
+       local forward = if rawForward.Magnitude > 0.001
+               then rawForward.Unit
+               else cameraCF.RightVector:Cross(cameraCF.UpVector)
+
        local right = forward:Cross(cameraCF.UpVector)
 
-       -- Combine right/forward basis with input move vector
-       -- moveVector.Z is positive when moving backward, so subtract it
        return right * moveVector.X - forward * moveVector.Z
 end
 

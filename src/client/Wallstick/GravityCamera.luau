@@ -53,21 +53,22 @@ function GravityCamera.getRotationType(): Enum.RotationType
 	return cameraModuleObject:GetRotationType()
 end
 
--- stylua: ignore
 function GravityCamera.getMoveVector(cameraCF: CFrame, inputMove: Vector3?): Vector3
-       local moveVector = inputMove or controlModuleObject:GetMoveVector() :: Vector3
+	local moveVector = inputMove or controlModuleObject:GetMoveVector() :: Vector3
 
-       -- Safely project LookVector onto the UpVector plane
-       local rawForward = cameraCF.LookVector - cameraCF.UpVector * cameraCF.LookVector:Dot(cameraCF.UpVector)
-       local forward = if rawForward.Magnitude > 0 then rawForward.Unit else Vector3.zero
+	-- Raw movement relative to camera
+	local moveDirection = cameraCF.RightVector * moveVector.X - cameraCF.LookVector * moveVector.Z
 
-       -- Right vector is tangent and orthogonal
-       local right = forward:Cross(cameraCF.UpVector)
+	-- Project movement onto surface plane (orthogonal to gravity)
+	local gravityUp = cameraCF.UpVector
+	local projected = moveDirection - gravityUp * moveDirection:Dot(gravityUp)
 
-       -- Recalculate forward if it became Vector3.zero
-       local adjustedForward = if forward.Magnitude > 0 then forward else cameraCF.UpVector:Cross(right)
-
-       return right * moveVector.X - adjustedForward * moveVector.Z
+	-- Normalize direction and scale by input magnitude
+	if projected.Magnitude > 0 then
+		return projected.Unit * moveDirection.Magnitude
+	else
+		return Vector3.zero
+	end
 end
 
 return GravityCamera

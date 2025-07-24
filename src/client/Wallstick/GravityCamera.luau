@@ -60,8 +60,8 @@ function GravityCamera.getMoveVector(cameraCF: CFrame, inputMove: Vector3?): Vec
        -- Project camera look vector onto the plane defined by the camera's up vector
        local forward = (cameraCF.LookVector - cameraCF.UpVector * cameraCF.LookVector:Dot(cameraCF.UpVector)).Unit
 
-       -- Right vector is orthogonal to both up and forward
-       local right = cameraCF.UpVector:Cross(forward)
+       -- Right vector is orthogonal to both forward and up
+       local right = forward:Cross(cameraCF.UpVector)
 
        -- Combine right/forward basis with input move vector
        return right * moveVector.X + forward * moveVector.Z

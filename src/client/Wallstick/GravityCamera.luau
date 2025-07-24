@@ -55,40 +55,16 @@ end
 
 -- stylua: ignore
 function GravityCamera.getMoveVector(cameraCF: CFrame, inputMove: Vector3?): Vector3
-	local moveVector = inputMove or controlModuleObject:GetMoveVector() :: Vector3
+       local moveVector = inputMove or controlModuleObject:GetMoveVector() :: Vector3
 
-	-- Extract rotation matrix components from camera's CFrame
-	local _, _, _, 
-		rightX, rightY, rightZ, -- Right vector
-		_, upY, upZ, -- Up vector (partial)
-		_, _, lookZ -- Look vector (partial)
-		= cameraCF:GetComponents()
+       -- Project camera look vector onto the plane defined by the camera's up vector
+       local forward = (cameraCF.LookVector - cameraCF.UpVector * cameraCF.LookVector:Dot(cameraCF.UpVector)).Unit
 
-	-- Determine quadrant flip based on upY sign (typically 1 or -1)
-	local quadrantSign = math.sign(upY)
+       -- Right vector is orthogonal to both up and forward
+       local right = cameraCF.UpVector:Cross(forward)
 
-	-- Choose basis vectors based on camera tilt, protecting against gimbal lock when looking straight up/down (upZ = ±1)
-	local cameraRight, cameraForward
-	if upZ > -1 and upZ < 1 then
-		-- Normal orientation: use camera's forward and right
-		cameraForward = lookZ  -- Z axis
-		cameraRight = rightZ   -- X axis, but projected
-	else
-		-- Extreme tilt: fallback to horizontal plane projection
-		cameraForward = rightX
-		cameraRight = -rightY * math.sign(upZ)
-	end
-
-	-- Normalize combined influence of forward and right axes
-	local magnitude = math.sqrt(cameraForward * cameraForward + cameraRight * cameraRight)
-	local normForward = cameraForward / magnitude
-	local normRight = cameraRight / magnitude
-
-	-- Project input move direction onto custom basis
-	local worldX = (normForward * moveVector.X * quadrantSign + normRight * moveVector.Z)
-	local worldZ = (normForward * moveVector.Z - normRight * moveVector.X * quadrantSign)
-
-	return Vector3.new(worldX, 0, worldZ)
+       -- Combine right/forward basis with input move vector
+       return right * moveVector.X + forward * moveVector.Z
 end
 
 return GravityCamera

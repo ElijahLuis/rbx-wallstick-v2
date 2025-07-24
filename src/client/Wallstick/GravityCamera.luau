@@ -56,19 +56,24 @@ end
 function GravityCamera.getMoveVector(cameraCF: CFrame, inputMove: Vector3?): Vector3
 	local moveVector = inputMove or controlModuleObject:GetMoveVector() :: Vector3
 
-	-- Raw movement relative to camera
-	local moveDirection = cameraCF.RightVector * moveVector.X - cameraCF.LookVector * moveVector.Z
+	local up = cameraCF.UpVector
+	local look = cameraCF.LookVector
+	local right = cameraCF.RightVector
 
-	-- Project movement onto surface plane (orthogonal to gravity)
-	local gravityUp = cameraCF.UpVector
-	local projected = moveDirection - gravityUp * moveDirection:Dot(gravityUp)
-
-	-- Normalize direction and scale by input magnitude
-	if projected.Magnitude > 0 then
-		return projected.Unit * moveDirection.Magnitude
-	else
-		return Vector3.zero
+	-- Prevent look vector from becoming nearly vertical (dot near +/-1)
+	local dot = math.abs(look:Dot(up))
+	if dot > 0.95 then
+		-- Clamp by forcing a horizontal look vector using camera rotation around up
+		look = (CFrame.fromMatrix(Vector3.zero, right:Cross(up), up, right)).LookVector
 	end
+
+	-- Construct move direction in local space
+	local moveDirection = right * moveVector.X - look * moveVector.Z
+
+	-- Project onto gravity plane
+	local projected = moveDirection - up * moveDirection:Dot(up)
+
+	return if projected.Magnitude > 0 then projected.Unit * moveDirection.Magnitude else Vector3.zero
 end
 
 return GravityCamera

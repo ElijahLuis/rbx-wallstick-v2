@@ -64,7 +64,8 @@ function GravityCamera.getMoveVector(cameraCF: CFrame, inputMove: Vector3?): Vec
        local right = forward:Cross(cameraCF.UpVector)
 
        -- Combine right/forward basis with input move vector
-       return right * moveVector.X + forward * moveVector.Z
+       -- moveVector.Z is positive when moving backward, so subtract it
+       return right * moveVector.X - forward * moveVector.Z
 end
 
 return GravityCamera

@@ -57,23 +57,16 @@ function GravityCamera.getMoveVector(cameraCF: CFrame, inputMove: Vector3?): Vec
 	local moveVector = inputMove or controlModuleObject:GetMoveVector() :: Vector3
 
 	local up = cameraCF.UpVector
-	local look = cameraCF.LookVector
-	local right = cameraCF.RightVector
 
-	-- Prevent look vector from becoming nearly vertical (dot near +/-1)
-	local dot = math.abs(look:Dot(up))
-	if dot > 0.95 then
-		-- Clamp by forcing a horizontal look vector using camera rotation around up
-		look = (CFrame.fromMatrix(Vector3.zero, right:Cross(up), up, right)).LookVector
-	end
+	-- Get the camera's flat (yaw-only) rotation
+	local flatCamera = CFrame.lookAt(Vector3.zero, Vector3.new(cameraCF.LookVector.X, 0, cameraCF.LookVector.Z))
+	local yawForward = (flatCamera.LookVector - up * flatCamera.LookVector:Dot(up)).Unit
+	local yawRight = yawForward:Cross(up)
 
-	-- Construct move direction in local space
-	local moveDirection = right * moveVector.X - look * moveVector.Z
+	-- Use yaw-aligned movement basis
+	local moveDirection = yawRight * moveVector.X - yawForward * moveVector.Z
 
-	-- Project onto gravity plane
-	local projected = moveDirection - up * moveDirection:Dot(up)
-
-	return if projected.Magnitude > 0 then projected.Unit * moveDirection.Magnitude else Vector3.zero
+	return if moveDirection.Magnitude > 0 then moveDirection.Unit * moveVector.Magnitude else Vector3.zero
 end
 
 return GravityCamera

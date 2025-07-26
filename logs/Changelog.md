@@ -6,7 +6,7 @@ This file tracks historical solutions previously stored in `AGENTS.md`.
 
 ## [2025-07-26]
 
-- **Symptoms reported by user:** Raycasts sometimes detected player limbs and console logs warned about deprecated region queries.
+- **Symptoms reported by user:** Searching codebase for deprecated classes
 - **Issue identified:** `ignoreCharacterParts` only inspected immediate parents while `_updateCollisionGeometry` still used `FindPartsInRegion3WithIgnoreList`.
 - **Methods used:** Reviewed Roblox Creator Hub docs for `GetPartBoundsInBox` and rewrote the filter to climb the ancestor chain for a `Humanoid` check.
 - **Solution implemented:** Replaced the region query with `workspace:GetPartBoundsInBox` using `OverlapParams` and updated `ignoreCharacterParts` to skip any parts belonging to a model that contains a `Humanoid`.

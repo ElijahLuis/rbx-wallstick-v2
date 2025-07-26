@@ -33,6 +33,11 @@ local controlModuleObject = playerModuleObject:GetControls() :: any
 
 local GravityCamera = {}
 
+-- When the camera is looking straight up/down, the planar forward collapses.
+-- Cache the last good one so movement never stalls.
+local lastPlanarForward: Vector3 = Vector3.zAxis
+local EPS = 1e-4
+
 function GravityCamera.getUpVector(): Vector3
 	return cameraModuleObject:GetUpVector()
 end
@@ -53,42 +58,45 @@ function GravityCamera.getRotationType(): Enum.RotationType
 	return cameraModuleObject:GetRotationType()
 end
 
--- stylua: ignore
 function GravityCamera.getMoveVector(cameraCF: CFrame, inputMove: Vector3?): Vector3
 	local moveVector = inputMove or controlModuleObject:GetMoveVector() :: Vector3
 
-	-- Extract rotation matrix components from camera's CFrame
-	local _, _, _, 
-		rightX, rightY, rightZ, -- Right vector
-		_, upY, upZ, -- Up vector (partial)
-		_, _, lookZ -- Look vector (partial)
-		= cameraCF:GetComponents()
+	-- Gravity up for the current camera (i.e., local surface normal)
+	local up = cameraCF.UpVector
 
-	-- Determine quadrant flip based on upY sign (typically 1 or -1)
-	local quadrantSign = math.sign(upY)
+	-- 1) Remove pitch: take the camera's look, strip the component along 'up'
+	--    This gives us the yaw-only heading on the gravity plane.
+	local flattened = cameraCF.LookVector - up * cameraCF.LookVector:Dot(up)
 
-	-- Choose basis vectors based on camera tilt, protecting against gimbal lock when looking straight up/down (upZ = ±1)
-	local cameraRight, cameraForward
-	if upZ > -1 and upZ < 1 then
-		-- Normal orientation: use camera's forward and right
-		cameraForward = lookZ  -- Z axis
-		cameraRight = rightZ   -- X axis, but projected
+	local forward: Vector3
+	if flattened.Magnitude > EPS then
+		forward = flattened.Unit
+		lastPlanarForward = forward
 	else
-		-- Extreme tilt: fallback to horizontal plane projection
-		cameraForward = rightX
-		cameraRight = -rightY * math.sign(upZ)
+		-- Camera is (nearly) parallel to 'up' → reuse last stable forward so we don't stall.
+		forward = lastPlanarForward
 	end
 
-	-- Normalize combined influence of forward and right axes
-	local magnitude = math.sqrt(cameraForward * cameraForward + cameraRight * cameraRight)
-	local normForward = cameraForward / magnitude
-	local normRight = cameraRight / magnitude
+	-- 2) Build a right vector that’s tangent and with the correct handedness for Roblox WASD
+	--    (A = left, D = right). Using forward:Cross(up) keeps A/D correct.
+	local right = forward:Cross(up)
+	if right.Magnitude <= EPS then
+		-- Super edge case: if this ever collapses, rebuild from cached forward.
+		right = lastPlanarForward:Cross(up)
+	end
+	right = right.Unit
 
-	-- Project input move direction onto custom basis
-	local worldX = (normForward * moveVector.X * quadrantSign + normRight * moveVector.Z)
-	local worldZ = (normForward * moveVector.Z - normRight * moveVector.X * quadrantSign)
+	-- 3) Map WASD:
+	--    - Roblox moveVector.Z: +1 is S (back), -1 is W (forward)
+	--    - So we subtract forward * Z to keep W = forward
+	local moveDirection = right * moveVector.X - forward * moveVector.Z
 
-	return Vector3.new(worldX, 0, worldZ)
+	-- Always return a direction with consistent magnitude relative to the input,
+	-- never the (possibly shrunken) projected vector's magnitude.
+	if moveDirection.Magnitude > 0 then
+		return moveDirection.Unit * moveVector.Magnitude
+	end
+	return Vector3.zero
 end
 
 return GravityCamera

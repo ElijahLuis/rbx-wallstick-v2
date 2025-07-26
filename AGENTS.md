@@ -2,6 +2,8 @@
 
 Codex’s internal guide and memory store. Use this file as your **brain**. Always check this file **first** before reading logs, modules, or runtime scripts. It tracks architectural decisions, file purposes, naming conventions, and known quirks. Update this as the project evolves.
 
+To install Stylua or Selene when needed, run `cargo install stylua` and `cargo install selene`.
+
 ---
 
 ## 👤 Agent Profile: Codex

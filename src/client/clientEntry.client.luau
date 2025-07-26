@@ -28,16 +28,20 @@ local RaycastHelper = require(SharedPackages.RaycastHelper)
 local WallstickClass = require(ReplicatedStorage.Wallstick)
 local Replication = require(ReplicatedStorage.Wallstick.Replication)
 
--- Excludes parts belonging to player's limbs and accessories
+-- Excludes hits on any part whose ancestor model contains a Humanoid
+-- This filters out limbs and accessories from both R6 and R15 rigs
 local function ignoreCharacterParts(result: RaycastResult): boolean
 	local hit = result.Instance :: BasePart
-	local accessory = hit:FindFirstAncestorWhichIsA("Accessory")
-	local character = (accessory or hit).Parent
-	local humanoid = character and character:FindFirstChildWhichIsA("Humanoid")
+	local ancestor: Instance? = hit
 
-	if character and humanoid then
-		local isLimb = humanoid:GetLimb(hit) ~= Enum.Limb.Unknown
-		return not (accessory or isLimb)
+	while ancestor do
+		if ancestor:IsA("Model") then
+			local humanoid = ancestor:FindFirstChildWhichIsA("Humanoid")
+			if humanoid then
+				return false
+			end
+		end
+		ancestor = ancestor.Parent
 	end
 
 	return true

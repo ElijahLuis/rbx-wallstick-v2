@@ -4,10 +4,13 @@
 		"$className": "DataModel",
                 "ReplicatedStorage": {
                         "$className": "ReplicatedStorage",
-                        "Wallstick": {
-                                "$path": "src/client/Wallstick"
-                        },
-                        "CFrameUtils": {
+      "Wallstick": {
+        "$path": "src/client/Wallstick"
+      },
+      "CharacterRig": {
+        "$path": "src/shared/CharacterRig.luau"
+      },
+      "CFrameUtils": {
                                 "$path": "src/shared/CFrameUtils.luau"
                         },
                         "SharedPackages": {

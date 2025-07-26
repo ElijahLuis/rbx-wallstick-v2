@@ -27,6 +27,7 @@ local SharedPackages = ReplicatedStorage.SharedPackages
 local RaycastHelper = require(SharedPackages.RaycastHelper)
 local WallstickClass = require(ReplicatedStorage.Wallstick)
 local Replication = require(ReplicatedStorage.Wallstick.Replication)
+local CharacterRig = require(ReplicatedStorage.CharacterRig)
 
 -- Excludes hits on any part whose ancestor model contains a Humanoid
 -- This filters out limbs and accessories from both R6 and R15 rigs
@@ -64,6 +65,7 @@ local function onCharacterAdded(character: Model)
 		return
 	end
 	local hrp = humanoid.RootPart :: BasePart
+	local rigProfile = CharacterRig.detectRig(character)
 
 	local rayParams = RaycastHelper.params({
 		filterType = Enum.RaycastFilterType.Exclude,
@@ -78,7 +80,7 @@ local function onCharacterAdded(character: Model)
 		end
 
 		-- adjust raycast based on rig type
-		local hipHeight = (humanoid.RigType == Enum.HumanoidRigType.R6) and 2 or humanoid.HipHeight
+		local hipHeight = rigProfile.getHipHeight(humanoid)
 		local hrpCF = hrp.CFrame
 
 		local result = RaycastHelper.raycast({

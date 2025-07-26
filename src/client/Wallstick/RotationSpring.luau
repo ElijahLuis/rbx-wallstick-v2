@@ -54,13 +54,14 @@ export type RotationSpring = typeof(setmetatable(
 	RotationSpringClass
 ))
 
--- Constructors
 --[[
-	Creates a new RotationSpring.
-	@param dampingRatio [number] - How quickly the spring settles (1 = critically damped)
-	@param frequency [number] - Natural frequency in Hz (before conversion to rad/s)
-	@param position [CFrame] - Initial rotation
-	@param goal [CFrame] - Target rotation
+        Creates a new RotationSpring.
+        @within RotationSpring
+        @param dampingRatio number -- How quickly the spring settles (1 = critically damped)
+        @param frequency number -- Natural frequency in Hz (before conversion to rad/s)
+        @param position CFrame -- Initial rotation
+        @param goal CFrame -- Target rotation
+        @return RotationSpring
 ]]
 
 function RotationSpringClass.new(dampingRatio: number, frequency: number, position: CFrame, goal: CFrame)
@@ -137,54 +138,127 @@ end
 
 -- Public Getters --
 
+--[=[
+        Returns the damping ratio.
+        @within RotationSpring
+        @param self RotationSpring
+        @return number
+]=]
 function RotationSpringClass.getDampingRatio(self: RotationSpring)
 	return self.dampingRatio
 end
 
+--[=[
+        Returns the natural frequency in Hz.
+        @within RotationSpring
+        @param self RotationSpring
+        @return number
+]=]
 function RotationSpringClass.getFrequency(self: RotationSpring)
 	return self.frequency
 end
 
+--[=[
+        Returns the current position CFrame.
+        @within RotationSpring
+        @param self RotationSpring
+        @return CFrame
+]=]
 function RotationSpringClass.getPosition(self: RotationSpring)
 	return self.position
 end
 
+--[=[
+        Returns the current angular velocity.
+        @within RotationSpring
+        @param self RotationSpring
+        @return Vector3
+]=]
 function RotationSpringClass.getVelocity(self: RotationSpring)
 	return self.velocity
 end
 
+--[=[
+        Returns the goal rotation.
+        @within RotationSpring
+        @param self RotationSpring
+        @return CFrame
+]=]
 function RotationSpringClass.getGoal(self: RotationSpring)
 	return self.goal
 end
 
 -- Public Setters --
+--[=[
+        Sets the damping ratio.
+        @within RotationSpring
+        @param self RotationSpring
+        @param dampingRatio number
+]=]
 function RotationSpringClass.setDampingRatio(self: RotationSpring, dampingRatio: number)
 	self.dampingRatio = dampingRatio
 end
 
+--[=[
+        Sets the natural frequency in Hz.
+        @within RotationSpring
+        @param self RotationSpring
+        @param frequency number
+]=]
 function RotationSpringClass.setFrequency(self: RotationSpring, frequency: number)
 	self.frequency = frequency
 end
 
+--[=[
+        Sets the current position of the spring.
+        @within RotationSpring
+        @param self RotationSpring
+        @param position CFrame
+]=]
 function RotationSpringClass.setPosition(self: RotationSpring, position: CFrame)
 	self.position = position
 end
 
+--[=[
+        Sets the current angular velocity.
+        @within RotationSpring
+        @param self RotationSpring
+        @param velocity Vector3
+]=]
 function RotationSpringClass.setVelocity(self: RotationSpring, velocity: Vector3)
 	self.velocity = velocity
 end
 
+--[=[
+        Sets the target rotation.
+        @within RotationSpring
+        @param self RotationSpring
+        @param goal CFrame
+]=]
 function RotationSpringClass.setGoal(self: RotationSpring, goal: CFrame)
 	self.goal = goal
 end
 
 -- Lifecycle --
+--[=[
+        Determines if the spring is at rest.
+        @within RotationSpring
+        @param self RotationSpring
+        @return boolean
+]=]
 function RotationSpringClass.canSleep(self: RotationSpring)
 	local sleepP = areRotationsClose(self.position, self.goal)
 	local sleepV = self.velocity.Magnitude < SLEEP_ROTATION_VELOCITY
 	return sleepP and sleepV
 end
 
+--[=[
+        Advances the spring simulation by `dt` seconds.
+        @within RotationSpring
+        @param self RotationSpring
+        @param dt number
+        @return CFrame -- new position
+]=]
 function RotationSpringClass.step(self: RotationSpring, dt: number)
 	local d = self.dampingRatio
 	local TAU = 2 * pi

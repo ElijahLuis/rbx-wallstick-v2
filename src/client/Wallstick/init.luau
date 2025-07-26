@@ -44,6 +44,7 @@ local Replication = require(script.Replication)
 local GravityCamera = require(script.GravityCamera)
 local RotationSpring = require(script.RotationSpring)
 local CharacterHelper = require(script.CharacterHelper)
+local CharacterRig = require(ReplicatedStorage.CharacterRig)
 
 local globalRenderTicket = 0
 
@@ -96,6 +97,7 @@ export type Wallstick = typeof(setmetatable(
 
 		real: CharacterHelper.RealCharacter,
 		fake: CharacterHelper.FakeCharacter,
+		rigProfile: CharacterRig.RigProfile,
 	},
 	WallstickClass
 ))
@@ -125,6 +127,7 @@ function WallstickClass.new(options: Options): Wallstick
 
 	self.real = CharacterHelper.real(Players.LocalPlayer)
 	self.fake = CharacterHelper.fake(Players.LocalPlayer)
+	self.rigProfile = CharacterRig.detectRig(self.real.character)
 
 	self.trove:Add(CharacterHelper.applyCollisionGroup(self.real.character, "WallstickNoCollision"))
 
@@ -267,7 +270,7 @@ function WallstickClass._trySendReplication(self: Wallstick, force: boolean)
 
 		local root = self.real.rootPart
 		local limbs: { [string]: CFrame } = {}
-		for _, name in ipairs({ "Head", "Torso", "UpperTorso", "LowerTorso" }) do
+		for _, name in ipairs(self.rigProfile.limbNames) do
 			local limb = self.real.character:FindFirstChild(name, true)
 			if limb and limb ~= root and limb:IsA("BasePart") then
 				limbs[name] = root.CFrame:ToObjectSpace((limb :: BasePart).CFrame)
@@ -409,7 +412,7 @@ end
 function WallstickClass.setAndTeleport(self: Wallstick, part: BasePart, normal: Vector3, position: Vector3)
 	local worldNormal = part.CFrame:VectorToWorldSpace(normal)
 	local realRootCF = self:_getCalculatedRealRootCFrame()
-	local heightAdjust = self.real.rootPart.Size.Y / 2 + self.real.humanoid.HipHeight
+	local heightAdjust = self.real.rootPart.Size.Y / 2 + self.rigProfile.getHipHeight(self.real.humanoid)
 
 	local floorRootCF = realRootCF * CFrame.new(0, -heightAdjust, 0)
 	local newRotation = CFrameUtils.fromToRotation(floorRootCF.YVector, worldNormal, floorRootCF.XVector)

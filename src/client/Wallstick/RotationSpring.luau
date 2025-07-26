@@ -194,6 +194,8 @@ function RotationSpringClass.step(self: RotationSpring, dt: number)
 	local v0 = self.velocity
 
 	local offset = axisAngleDiff(p0, g)
+	-- clamp input for sqrt below to avoid NaN when `d` drifts slightly
+	-- outside expected range due to floating-point error
 	local decay = exp(-d * f * dt)
 
 	local pt: CFrame -- new position
@@ -205,7 +207,9 @@ function RotationSpringClass.step(self: RotationSpring, dt: number)
 		vt = (v0 * (1 - dt * f) - offset * (dt * f * f)) * decay
 	elseif d < 1 then
 		-- underdamped
-		local c = sqrt(1 - d * d)
+		-- slight overflows can occur if d > 1 due to float rounding
+		-- wrap sqrt input to avoid NaN when value dips below 0
+		local c = sqrt(max(0, 1 - d * d))
 
 		local i = cos(dt * f * c)
 		local j = sin(dt * f * c)
@@ -217,7 +221,8 @@ function RotationSpringClass.step(self: RotationSpring, dt: number)
 		vt = (v0 * (i - z * d) - offset * (z * f)) * decay
 	else
 		-- overdamped
-		local c = sqrt(d * d - 1)
+		-- same overflow protection as underdamped branch
+		local c = sqrt(max(0, d * d - 1))
 
 		local r1 = -f * (d + c)
 		local r2 = -f * (d - c)

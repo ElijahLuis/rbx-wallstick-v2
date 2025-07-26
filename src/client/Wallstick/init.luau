@@ -197,11 +197,16 @@ function WallstickClass._updateCollisionGeometry(self: Wallstick)
 
 	local colliderBoxSizeHalf = Vector3.new(10, 10, 10)
 
-	local parts = workspace:FindPartsInRegion3WithIgnoreList(
-		Region3.new(realRootCF.Position - colliderBoxSizeHalf, realRootCF.Position + colliderBoxSizeHalf),
-		{ self.real.character, self.options.parent } :: { Instance },
-		1000
-	) :: { BasePart }
+	local regionMin = realRootCF.Position - colliderBoxSizeHalf
+	local regionMax = realRootCF.Position + colliderBoxSizeHalf
+	local center = (regionMin + regionMax) / 2
+	local size = regionMax - regionMin
+
+	local params = OverlapParams.new()
+	params.FilterType = Enum.RaycastFilterType.Blacklist
+	params.FilterDescendantsInstances = { self.real.character, self.options.parent } :: { Instance }
+
+	local parts = workspace:GetPartBoundsInBox(CFrame.new(center), size, params) :: { BasePart }
 
 	for _, realPart in parts do
 		local collisionPart: BasePart

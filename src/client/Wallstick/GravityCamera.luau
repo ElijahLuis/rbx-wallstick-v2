@@ -33,6 +33,11 @@ local controlModuleObject = playerModuleObject:GetControls() :: any
 
 local GravityCamera = {}
 
+-- When the camera is looking straight up/down, the planar forward collapses.
+-- Cache the last good one so movement never stalls.
+local lastPlanarForward: Vector3 = Vector3.zAxis
+local EPS = 1e-4
+
 function GravityCamera.getUpVector(): Vector3
 	return cameraModuleObject:GetUpVector()
 end
@@ -55,22 +60,43 @@ end
 
 function GravityCamera.getMoveVector(cameraCF: CFrame, inputMove: Vector3?): Vector3
 	local moveVector = inputMove or controlModuleObject:GetMoveVector() :: Vector3
+
+	-- Gravity up for the current camera (i.e., local surface normal)
 	local up = cameraCF.UpVector
 
-	-- Get yaw-only LookVector by flattening onto XZ and projecting onto gravity plane
-	local flatLook = Vector3.new(cameraCF.LookVector.X, 0, cameraCF.LookVector.Z)
-	if flatLook.Magnitude < 1e-4 then
-		flatLook = Vector3.zAxis -- Fallback for looking straight up/down
+	-- 1) Remove pitch: take the camera's look, strip the component along 'up'
+	--    This gives us the yaw-only heading on the gravity plane.
+	local flattened = cameraCF.LookVector - up * cameraCF.LookVector:Dot(up)
+
+	local forward: Vector3
+	if flattened.Magnitude > EPS then
+		forward = flattened.Unit
+		lastPlanarForward = forward
+	else
+		-- Camera is (nearly) parallel to 'up' → reuse last stable forward so we don't stall.
+		forward = lastPlanarForward
 	end
 
-	-- Project onto gravity-defined surface plane
-	local forward = (flatLook - up * flatLook:Dot(up)).Unit
-	local right = forward:Cross(up) -- Correct handedness for A/D
+	-- 2) Build a right vector that’s tangent and with the correct handedness for Roblox WASD
+	--    (A = left, D = right). Using forward:Cross(up) keeps A/D correct.
+	local right = forward:Cross(up)
+	if right.Magnitude <= EPS then
+		-- Super edge case: if this ever collapses, rebuild from cached forward.
+		right = lastPlanarForward:Cross(up)
+	end
+	right = right.Unit
 
-	-- Roblox input: Z+ is back (S), Z– is forward (W), so we negate forward
+	-- 3) Map WASD:
+	--    - Roblox moveVector.Z: +1 is S (back), -1 is W (forward)
+	--    - So we subtract forward * Z to keep W = forward
 	local moveDirection = right * moveVector.X - forward * moveVector.Z
 
-	return if moveDirection.Magnitude > 0 then moveDirection.Unit * moveVector.Magnitude else Vector3.zero
+	-- Always return a direction with consistent magnitude relative to the input,
+	-- never the (possibly shrunken) projected vector's magnitude.
+	if moveDirection.Magnitude > 0 then
+		return moveDirection.Unit * moveVector.Magnitude
+	end
+	return Vector3.zero
 end
 
 return GravityCamera
